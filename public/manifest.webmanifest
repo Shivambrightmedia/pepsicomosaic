@@ -1,0 +1,8 @@
+{
+  "name": "Smile Flip Mosaic",
+  "short_name": "SmileMosaic",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07090e",
+  "theme_color": "#07090e"
+}
