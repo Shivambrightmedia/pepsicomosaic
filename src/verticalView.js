@@ -25,13 +25,13 @@ export function createVerticalView(router) {
         <div class="capture-header-zone">
           <div class="traffic-lights-capsule">
             <div class="light-dot dot-red" id="dot-red" title="Rude / Frown"></div>
-            <div class="light-dot dot-green" id="dot-green" title="Smile (2s Hold)"></div>
+            <div class="light-dot dot-green" id="dot-green" title="Smile (1s Hold)"></div>
             <div class="light-dot dot-yellow" id="dot-yellow" title="Normal / Neutral"></div>
           </div>
 
-          <!-- Countdown (shows 20 instead of 2.0) & Prompt -->
+          <!-- Countdown (shows 10 instead of 1.0) & Prompt -->
           <div class="camera-prompt-zone">
-            <div class="countdown-large-num" id="countdown-num">20</div>
+            <div class="countdown-large-num" id="countdown-num">10</div>
             <div class="camera-look-text">LOOK AT THE CAMERA</div>
           </div>
         </div>
@@ -100,7 +100,7 @@ export function createVerticalView(router) {
           <!-- Bottom bar with subtle simulation buttons & home link -->
           <div class="bottom-footer-bar">
             <div class="test-controls-row">
-              <button class="quick-sim-btn" id="btn-sim-smile">😊 Smile (2s)</button>
+              <button class="quick-sim-btn" id="btn-sim-smile">😊 Smile (1s)</button>
               <button class="quick-sim-btn" id="btn-sim-snap">📸 Snap</button>
               <button class="quick-sim-btn" id="btn-back-start">← Start Screen</button>
             </div>
@@ -146,7 +146,7 @@ export function createVerticalView(router) {
     capturedPlaceholder.style.display = 'none';
 
     statusPill.textContent = 'Photo captured!';
-    countdownNum.textContent = '20';
+    countdownNum.textContent = '10';
   }
 
   // Reset to live camera tracking
@@ -155,7 +155,7 @@ export function createVerticalView(router) {
     capturedImg.src = '';
     capturedImg.style.display = 'none';
     capturedPlaceholder.style.display = 'flex';
-    countdownNum.textContent = '20';
+    countdownNum.textContent = '10';
     statusPill.textContent = 'Looking for face...';
     detector.resume();
   }
@@ -253,11 +253,11 @@ export function createVerticalView(router) {
     },
     onProgress: (progress, remainingSec) => {
       if (progress > 0) {
-        // Countdown from 20 to 0 (tenths: 20 -> 0)
+        // Countdown from 10 to 0 (tenths: 10 -> 0)
         const val = Math.max(0, Math.round(remainingSec * 10));
         countdownNum.textContent = `${val}`;
       } else {
-        countdownNum.textContent = '20';
+        countdownNum.textContent = '10';
       }
     },
     onCapture: (photo) => {
@@ -271,13 +271,13 @@ export function createVerticalView(router) {
   // Quick simulation triggers for manual testing
   btnSimSmile.addEventListener('click', () => {
     setTrafficLights('smile');
-    let timeLeft = 20;
+    let timeLeft = 10;
     const timer = setInterval(() => {
       timeLeft -= 1;
       countdownNum.textContent = `${timeLeft}`;
       if (timeLeft <= 0) {
         clearInterval(timer);
-        countdownNum.textContent = '20';
+        countdownNum.textContent = '10';
         const frame = detector.captureFrame() || generateSimulatedSelfie();
         onPhotoCaptured(frame);
       }

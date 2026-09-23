@@ -27,7 +27,7 @@ export class FaceDetector {
 
     // Smile timing tracker
     this.smileStartTime = null;
-    this.holdDuration = 2000; // 2 seconds
+    this.holdDuration = 1000; // 1 second
     this.isPaused = false;
     this.currentExpression = 'none';
   }
