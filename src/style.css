@@ -921,11 +921,6 @@ html, body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.tile-front:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.6);
-}
-
 .tile-back {
   transform: rotateY(180deg);
   background: transparent;
@@ -941,17 +936,6 @@ html, body {
   opacity: var(--tile-photo-opacity, 0.75);
   mix-blend-mode: var(--tile-blend-mode, normal);
   transition: opacity 0.25s ease, filter 0.25s ease;
-}
-
-.mosaic-tile.has-photo:hover .tile-back img {
-  opacity: 1 !important;
-  filter: brightness(1.1);
-}
-
-.mosaic-tile.has-photo:hover .tile-back {
-  border-color: #38bdf8;
-  box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.6);
-  z-index: 10;
 }
 
 /* ========================================================
