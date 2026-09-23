@@ -1,4 +1,6 @@
 import { FaceDetector } from './faceDetector.js';
+import { uploadPhoto } from './services/cloudinary.js';
+import { publishPhoto } from './services/firebase.js';
 
 export function createVerticalView(router) {
   const container = document.createElement('div');
@@ -176,21 +178,72 @@ export function createVerticalView(router) {
     resetCapture();
   });
 
-  // OK Button: Confirms photo and opens the first page (Start Screen)
-  btnOk.addEventListener('click', () => {
-    if (!currentCapturedPhoto) return;
-    statusPill.textContent = '✓ Photo confirmed!';
-    router.broadcast({
-      type: 'PHOTO_APPROVED',
-      image: currentCapturedPhoto
-    });
+  let isUploading = false;
 
-    btnOk.classList.add('btn-confirmed');
-    setTimeout(() => {
-      btnOk.classList.remove('btn-confirmed');
-      resetCapture();
-      router.navigate('/start');
-    }, 400);
+  // OK Button: Confirms photo, uploads to Cloudinary, and publishes to Firebase
+  btnOk.addEventListener('click', async () => {
+    if (!currentCapturedPhoto || isUploading) return;
+
+    isUploading = true;
+    btnOk.disabled = true;
+    btnRetake.disabled = true;
+    btnOk.classList.add('is-loading');
+    statusPill.textContent = '☁️ Saving to Cloudinary...';
+
+    try {
+      // 1. Upload photo to Cloudinary
+      const uploadRes = await uploadPhoto(currentCapturedPhoto);
+
+      let finalPhotoUrl = currentCapturedPhoto;
+      if (uploadRes.success && uploadRes.url) {
+        finalPhotoUrl = uploadRes.url;
+        statusPill.textContent = '⚡ Syncing with Mosaic Wall...';
+
+        // 2. Publish to Firebase Realtime Database
+        await publishPhoto(finalPhotoUrl);
+      } else {
+        console.warn('[Kiosk] Cloudinary upload issue, falling back to local sync:', uploadRes.error);
+        statusPill.textContent = '⚠️ Cloud offline, syncing locally...';
+      }
+
+      // 3. Fallback / local broadcast for same-browser instant sync
+      router.broadcast({
+        type: 'PHOTO_APPROVED',
+        image: finalPhotoUrl
+      });
+
+      statusPill.textContent = '✓ Added to Wall!';
+      btnOk.classList.remove('is-loading');
+      btnOk.classList.add('btn-confirmed');
+
+      setTimeout(() => {
+        btnOk.classList.remove('btn-confirmed');
+        btnOk.disabled = false;
+        btnRetake.disabled = false;
+        isUploading = false;
+        resetCapture();
+        router.navigate('/start');
+      }, 500);
+
+    } catch (err) {
+      console.error('[Kiosk] Upload flow error:', err);
+      statusPill.textContent = '⚠️ Error uploading photo';
+
+      // Fallback local broadcast
+      router.broadcast({
+        type: 'PHOTO_APPROVED',
+        image: currentCapturedPhoto
+      });
+
+      setTimeout(() => {
+        btnOk.classList.remove('is-loading');
+        btnOk.disabled = false;
+        btnRetake.disabled = false;
+        isUploading = false;
+        resetCapture();
+        router.navigate('/start');
+      }, 1000);
+    }
   });
 
   // Face Detector Service

@@ -2,6 +2,7 @@
 // Press 'F' to toggle Settings Icon. Click Settings Icon for Grid Customization.
 // Fullscreen (F11) cover-fills the screen with zero black space.
 // Approved photos appear BIG first, then fly, shrink, flip, and fit into a random grid slot.
+import { subscribeToPhotos, resetRemotePhotos } from './services/firebase.js';
 
 export const GRID_PRESETS = {
   50: { label: '50', cols: 10, rows: 5, total: 50, gap: '4px', fontSize: 'clamp(11px, 1.3vw, 20px)' },
@@ -49,7 +50,10 @@ export function createHorizontalView(router) {
         <div class="settings-header">
           <div class="settings-title-group">
             <h3>GRID SETTINGS</h3>
-            <span class="settings-kbd-badge">Toggle icon: [ F ]</span>
+            <div class="settings-badges-row">
+              <span class="settings-kbd-badge">Toggle icon: [ F ]</span>
+              <span class="cloud-status-badge" id="cloud-status-badge">⚡ Cloud: Connecting...</span>
+            </div>
           </div>
           <button class="settings-close-btn" id="btn-close-settings" title="Close">✕</button>
         </div>
@@ -353,21 +357,102 @@ export function createHorizontalView(router) {
     }
   });
 
-  btnModalReset.addEventListener('click', () => {
-    if (confirm('Reset mosaic wall photos?')) {
+  btnModalReset.addEventListener('click', async () => {
+    if (confirm('Reset mosaic wall photos across all connected screens?')) {
+      btnModalReset.disabled = true;
+      btnModalReset.textContent = 'Resetting...';
+      try {
+        await resetRemotePhotos();
+      } catch (err) {
+        console.error('Error resetting cloud photos:', err);
+      }
+      seenPhotos.clear();
       localStorage.removeItem('mosaic_photos');
       renderGrid();
       updateStats();
+      btnModalReset.disabled = false;
+      btnModalReset.textContent = '↺ Reset Photos';
+      closeModal();
+      showToast('↺ Mosaic wall reset');
     }
   });
+
+  // Track already seen photos to prevent duplicate animations between Firebase & BroadcastChannel
+  const seenPhotos = new Set();
+  const cachedPhotos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
+  cachedPhotos.filter(Boolean).forEach(p => seenPhotos.add(p));
 
   // Attach global keyboard listener
   window.addEventListener('keydown', handleKeyDown);
 
-  // Broadcast channel listener for real-time photo sync from vertical kiosk
+  // Broadcast channel listener for fallback local sync
   router.onBroadcast((data) => {
     if (data.type === 'PHOTO_APPROVED' && data.image) {
+      if (seenPhotos.has(data.image)) return;
+      seenPhotos.add(data.image);
       addPhoto(data.image);
+    }
+  });
+
+  // Subscribe to Firebase Realtime Database SSE stream (zero polling)
+  let unsubscribeFirebase = subscribeToPhotos({
+    onStatusChange: (status) => {
+      const badge = container.querySelector('#cloud-status-badge');
+      if (!badge) return;
+      if (status === 'connected') {
+        badge.textContent = '⚡ Cloud: Connected';
+        badge.className = 'cloud-status-badge status-connected';
+      } else if (status === 'connecting') {
+        badge.textContent = '⏳ Cloud: Connecting...';
+        badge.className = 'cloud-status-badge status-connecting';
+      } else {
+        badge.textContent = '⚠️ Cloud: Offline';
+        badge.className = 'cloud-status-badge status-disconnected';
+      }
+    },
+    onInitialPhotos: (cloudPhotos) => {
+      console.log(`[Mosaic] Synced ${cloudPhotos.length} photos from Firebase`);
+      const localPhotos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
+      const total = activePreset.total;
+      let changed = false;
+
+      cloudPhotos.forEach(({ imageUrl }) => {
+        seenPhotos.add(imageUrl);
+        if (!localPhotos.includes(imageUrl)) {
+          // Find next unoccupied slot
+          let emptyIdx = -1;
+          for (let i = 0; i < total; i++) {
+            if (!localPhotos[i]) {
+              emptyIdx = i;
+              break;
+            }
+          }
+          if (emptyIdx !== -1) {
+            localPhotos[emptyIdx] = imageUrl;
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        localStorage.setItem('mosaic_photos', JSON.stringify(localPhotos));
+        renderGrid();
+        updateStats();
+      }
+    },
+    onNewPhoto: (imageUrl) => {
+      if (seenPhotos.has(imageUrl)) return;
+      seenPhotos.add(imageUrl);
+      console.log('[Mosaic] New photo arriving via Firebase:', imageUrl);
+      addPhoto(imageUrl);
+    },
+    onReset: () => {
+      console.log('[Mosaic] Cloud reset event received');
+      seenPhotos.clear();
+      localStorage.removeItem('mosaic_photos');
+      renderGrid();
+      updateStats();
+      showToast('↺ Mosaic wall reset');
     }
   });
 
@@ -375,6 +460,10 @@ export function createHorizontalView(router) {
   container.stop = () => {
     window.removeEventListener('keydown', handleKeyDown);
     clearTimeout(toastTimer);
+    if (typeof unsubscribeFirebase === 'function') {
+      unsubscribeFirebase();
+      unsubscribeFirebase = null;
+    }
   };
 
   // Initial setup

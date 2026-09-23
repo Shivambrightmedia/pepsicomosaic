@@ -684,6 +684,26 @@ html, body {
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.65);
 }
 
+.btn-action-ok.is-loading {
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  opacity: 0.85;
+  cursor: wait;
+  position: relative;
+  animation: pulse-upload 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-upload {
+  0%, 100% { opacity: 0.85; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.2); }
+}
+
+.btn-action-ok:disabled,
+.btn-action-retake:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Bottom Footer (Simulation Test Bar) */
 .bottom-footer-bar {
   display: flex;
@@ -960,6 +980,12 @@ html, body {
   color: #f8fafc;
 }
 
+.settings-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .settings-kbd-badge {
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -968,6 +994,32 @@ html, body {
   color: #38bdf8;
   padding: 2px 8px;
   border-radius: 6px;
+}
+
+.cloud-status-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.cloud-status-badge.status-connected {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.cloud-status-badge.status-connecting {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.cloud-status-badge.status-disconnected {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
 .settings-close-btn {
