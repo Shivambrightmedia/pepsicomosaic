@@ -365,6 +365,8 @@ export function createHorizontalView(router) {
   function renderGrid() {
     const photos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
     const total = activePreset.total;
+    const numPredefined = predefinedPhotos.length;
+    const halfOffset = numPredefined > 0 ? Math.max(1, Math.floor(numPredefined / 2)) : 0;
 
     gridEl.innerHTML = '';
     for (let i = 0; i < total; i++) {
@@ -373,24 +375,24 @@ export function createHorizontalView(router) {
       tile.dataset.index = i;
 
       const userPhoto = photos[i];
-      const predefinedPhoto = (!userPhoto && predefinedPhotos.length > 0)
-        ? predefinedPhotos[i % predefinedPhotos.length]
-        : null;
 
       if (userPhoto) {
         tile.classList.add('has-photo', 'user-photo');
         tile.innerHTML = `
           <div class="tile-card is-flipped">
-            <div class="tile-front"></div>
+            <div class="tile-front"><img src="${userPhoto}" alt="User Smile" /></div>
             <div class="tile-back"><img src="${userPhoto}" alt="User Smile" /></div>
           </div>
         `;
-      } else if (predefinedPhoto) {
+      } else if (numPredefined > 0) {
+        // Pre-populate BOTH front and back with photos from the folder so card never turns to black
+        const backPhoto = predefinedPhotos[i % numPredefined];
+        const frontPhoto = predefinedPhotos[(i + halfOffset) % numPredefined];
         tile.classList.add('has-photo', 'predefined-photo');
         tile.innerHTML = `
           <div class="tile-card is-flipped">
-            <div class="tile-front"></div>
-            <div class="tile-back"><img src="${predefinedPhoto}" alt="Filler Photo" /></div>
+            <div class="tile-front"><img src="${frontPhoto}" alt="Folder Photo" /></div>
+            <div class="tile-back"><img src="${backPhoto}" alt="Folder Photo" /></div>
           </div>
         `;
       } else {
@@ -492,20 +494,28 @@ export function createHorizontalView(router) {
         targetTile.classList.remove('tile-targeted', 'predefined-photo');
         targetTile.classList.add('has-photo', 'user-photo', 'tile-docked');
         const card = targetTile.querySelector('.tile-card');
+        const front = targetTile.querySelector('.tile-front');
         const back = targetTile.querySelector('.tile-back');
 
-        if (card && card.classList.contains('is-flipped')) {
-          // Predefined photo was already flipped: flip front, replace img, flip back!
-          card.style.transition = 'transform 0.4s ease';
-          card.classList.remove('is-flipped');
-          setTimeout(() => {
+        if (card) {
+          card.style.transition = 'transform 1.8s cubic-bezier(0.22, 1, 0.36, 1)';
+          if (card.classList.contains('is-flipped')) {
+            // Currently showing back. Load smile into hidden front, flip to front!
+            if (front) front.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
+            void (front && front.offsetWidth);
+            card.classList.remove('is-flipped');
+            setTimeout(() => {
+              if (back) back.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
+            }, 1800);
+          } else {
+            // Currently showing front. Load smile into hidden back, flip to back!
             if (back) back.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
-            card.style.transition = 'transform 2.0s cubic-bezier(0.22, 1, 0.36, 1)';
+            void (back && back.offsetWidth);
             card.classList.add('is-flipped');
-          }, 350);
-        } else {
-          if (back) back.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
-          if (card) card.classList.add('is-flipped');
+            setTimeout(() => {
+              if (front) front.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
+            }, 1800);
+          }
         }
 
         // Smoothly fade out flyer during tile flip
@@ -789,12 +799,10 @@ export function createHorizontalView(router) {
 
   function triggerAmbientFlips() {
     if (isAnimatingPhoto) return; // Never interrupt live smile docking
+    if (predefinedPhotos.length === 0) return; // Need folder photos to cycle
 
-    const tilesWithPhotos = Array.from(gridEl.querySelectorAll('.mosaic-tile.has-photo'));
-    const candidates = tilesWithPhotos.length > 0
-      ? tilesWithPhotos
-      : Array.from(gridEl.querySelectorAll('.mosaic-tile'));
-
+    // Only pick predefined-photo tiles, NEVER touch live user smiles
+    const candidates = Array.from(gridEl.querySelectorAll('.mosaic-tile.predefined-photo'));
     if (candidates.length === 0) return;
 
     // Pick 10 to 12 tiles randomly
@@ -804,16 +812,39 @@ export function createHorizontalView(router) {
 
     selected.forEach((tile, index) => {
       const card = tile.querySelector('.tile-card');
-      if (!card || card.classList.contains('is-ambient-spin')) return;
+      const front = tile.querySelector('.tile-front');
+      const back = tile.querySelector('.tile-back');
+      if (!card || !front || !back) return;
+      if (card.dataset.isFlipping === 'true') return;
 
-      // Stagger slightly (0 to 600ms) for organic wave/sparkle
-      const delay = index * 55;
+      // Stagger slightly (0 to 660ms) for an organic wave ripple across the wall
+      const delay = index * 60;
       setTimeout(() => {
         if (isAnimatingPhoto) return;
-        card.classList.add('is-ambient-spin');
-        card.addEventListener('animationend', () => {
-          card.classList.remove('is-ambient-spin');
-        }, { once: true });
+        if (tile.classList.contains('user-photo')) return; // Safety check: never flip user photos
+
+        // Pick a random image from the folder
+        const randomImg = predefinedPhotos[Math.floor(Math.random() * predefinedPhotos.length)];
+        card.dataset.isFlipping = 'true';
+        card.style.transition = 'transform 1.6s cubic-bezier(0.22, 1, 0.36, 1)';
+
+        const isCurrentlyFlipped = card.classList.contains('is-flipped');
+
+        if (isCurrentlyFlipped) {
+          // Currently showing back face. Set new folder image on hidden front face, then flip!
+          front.innerHTML = `<img src="${randomImg}" alt="Folder Photo" />`;
+          void front.offsetWidth;
+          card.classList.remove('is-flipped');
+        } else {
+          // Currently showing front face. Set new folder image on hidden back face, then flip!
+          back.innerHTML = `<img src="${randomImg}" alt="Folder Photo" />`;
+          void back.offsetWidth;
+          card.classList.add('is-flipped');
+        }
+
+        setTimeout(() => {
+          card.dataset.isFlipping = 'false';
+        }, 1750);
       }, delay);
     });
   }
