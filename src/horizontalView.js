@@ -657,6 +657,7 @@ export function createHorizontalView(router) {
   container.stop = () => {
     window.removeEventListener('keydown', handleKeyDown);
     clearTimeout(toastTimer);
+    stopAmbientFlips();
     if (typeof unsubscribeFirebase === 'function') {
       unsubscribeFirebase();
       unsubscribeFirebase = null;
@@ -783,11 +784,60 @@ export function createHorizontalView(router) {
     });
   }
 
+  // Ambient in-place random flip animation (10 to 12 tiles flip in place to make the wall feel alive)
+  let ambientFlipInterval = null;
+
+  function triggerAmbientFlips() {
+    if (isAnimatingPhoto) return; // Never interrupt live smile docking
+
+    const tilesWithPhotos = Array.from(gridEl.querySelectorAll('.mosaic-tile.has-photo'));
+    const candidates = tilesWithPhotos.length > 0
+      ? tilesWithPhotos
+      : Array.from(gridEl.querySelectorAll('.mosaic-tile'));
+
+    if (candidates.length === 0) return;
+
+    // Pick 10 to 12 tiles randomly
+    const count = Math.min(candidates.length, Math.floor(Math.random() * 3) + 10); // 10, 11, or 12
+    const shuffled = candidates.slice().sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, count);
+
+    selected.forEach((tile, index) => {
+      const card = tile.querySelector('.tile-card');
+      if (!card || card.classList.contains('is-ambient-spin')) return;
+
+      // Stagger slightly (0 to 600ms) for organic wave/sparkle
+      const delay = index * 55;
+      setTimeout(() => {
+        if (isAnimatingPhoto) return;
+        card.classList.add('is-ambient-spin');
+        card.addEventListener('animationend', () => {
+          card.classList.remove('is-ambient-spin');
+        }, { once: true });
+      }, delay);
+    });
+  }
+
+  function startAmbientFlips() {
+    stopAmbientFlips();
+    ambientFlipInterval = setInterval(() => {
+      triggerAmbientFlips();
+    }, 4500); // Trigger every 4.5 seconds
+  }
+
+  function stopAmbientFlips() {
+    if (ambientFlipInterval) {
+      clearInterval(ambientFlipInterval);
+      ambientFlipInterval = null;
+    }
+  }
+
   // Initial setup
   setPreset(currentPresetKey);
   applyBackground(currentBgImage);
   applyTileOpacity(currentTileOpacity);
   applyBlendMode(currentBlendMode);
+  startAmbientFlips();
 
   // Load saved predefined images from IndexedDB
   getPredefinedImages().then((imgs) => {

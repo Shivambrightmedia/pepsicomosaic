@@ -892,6 +892,39 @@ html, body {
   transform: rotateY(180deg);
 }
 
+/* Ambient In-Place Flip Animation (10 to 12 tiles flip in place) */
+.tile-card.is-ambient-spin {
+  animation: tile-ambient-spin 1.8s cubic-bezier(0.25, 1, 0.35, 1) forwards;
+}
+
+.tile-card:not(.is-flipped).is-ambient-spin {
+  animation: tile-ambient-spin-front 1.8s cubic-bezier(0.25, 1, 0.35, 1) forwards;
+}
+
+@keyframes tile-ambient-spin {
+  0% {
+    transform: rotateY(180deg);
+  }
+  50% {
+    transform: rotateY(360deg) scale(1.04);
+  }
+  100% {
+    transform: rotateY(540deg) scale(1);
+  }
+}
+
+@keyframes tile-ambient-spin-front {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(180deg) scale(1.04);
+  }
+  100% {
+    transform: rotateY(360deg) scale(1);
+  }
+}
+
 .tile-front, .tile-back {
   position: absolute;
   inset: 0;
