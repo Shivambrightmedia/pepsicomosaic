@@ -743,6 +743,23 @@ html, body {
   background: #05070d;
   display: flex;
   flex-direction: column;
+  --tile-photo-opacity: 0.75;
+  --tile-blend-mode: normal;
+}
+
+/* Fullscreen Master Background Image Layer */
+.mosaic-master-bg {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  display: none;
 }
 
 /* Floating Top-Right Settings Button (Toggled with 'F' key) */
@@ -831,6 +848,8 @@ html, body {
 
 /* 1:1 Square Mosaic Grid Wrapper (Zero Margin, Zero Padding, Edge-to-Edge Cover Fill) */
 .mosaic-grid-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100vw;
   height: 100vh;
   margin: 0;
@@ -891,6 +910,13 @@ html, body {
   transition: all 0.2s;
 }
 
+/* Empty tile styling when master background is active */
+.mosaic-fullscreen-container.has-master-bg .tile-front {
+  background: rgba(6, 10, 18, 0.42);
+  backdrop-filter: blur(0.5px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .tile-front:hover {
   background: rgba(255, 255, 255, 0.07);
   color: rgba(255, 255, 255, 0.6);
@@ -898,7 +924,7 @@ html, body {
 
 .tile-back {
   transform: rotateY(180deg);
-  background: #000000;
+  background: transparent;
   border: 1px solid rgba(56, 189, 248, 0.35);
 }
 
@@ -907,6 +933,14 @@ html, body {
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: var(--tile-photo-opacity, 0.75);
+  mix-blend-mode: var(--tile-blend-mode, normal);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.mosaic-tile.has-photo:hover .tile-back img {
+  opacity: 1 !important;
+  filter: brightness(1.1);
 }
 
 .mosaic-tile.has-photo:hover .tile-back {
@@ -1258,5 +1292,156 @@ html, body {
     transform: scale(1);
     box-shadow: 0 0 0 transparent;
   }
+}
+
+/* ========================================================
+   BACKGROUND IMAGE & TILE OPACITY SETTINGS CONTROLS
+======================================================== */
+.bg-settings-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.bg-control-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.bg-control-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.bg-control-btn.btn-danger-soft {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.bg-control-btn.btn-danger-soft:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.bg-status-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+.bg-thumb-mini {
+  width: 44px;
+  height: 26px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  display: none;
+}
+
+.bg-status-text {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setting-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.setting-val-badge {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.slider-control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.slider-min, .slider-max {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.mosaic-slider {
+  flex: 1;
+  accent-color: #38bdf8;
+  cursor: pointer;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  outline: none;
+}
+
+.blend-mode-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.blend-btn {
+  flex: 1;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.blend-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.blend-btn.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.setting-hint-text {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
 }
 

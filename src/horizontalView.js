@@ -25,6 +25,15 @@ export function createHorizontalView(router) {
   // Setting icon visibility state
   let isSettingIconVisible = localStorage.getItem('mosaic_setting_icon_visible') !== 'false';
 
+  // Master background image state
+  let currentBgImage = localStorage.getItem('mosaic_bg_image') || null;
+
+  // Tile opacity state (percentage 10-100)
+  let currentTileOpacity = parseInt(localStorage.getItem('mosaic_tile_opacity') || '75', 10);
+
+  // Tile blend mode ('normal' | 'overlay' | 'soft-light' | 'multiply')
+  let currentBlendMode = localStorage.getItem('mosaic_tile_blend') || 'normal';
+
   container.innerHTML = `
     <!-- Top-Right Settings Button (Toggled with 'F' key) -->
     <button class="mosaic-settings-btn ${isSettingIconVisible ? '' : 'is-disabled'}" id="btn-mosaic-settings" title="Settings (Press 'F' to hide/show)">
@@ -37,6 +46,9 @@ export function createHorizontalView(router) {
 
     <!-- Brief feedback toast on pressing 'F' -->
     <div class="mosaic-toast hidden" id="mosaic-toast"></div>
+
+    <!-- Fullscreen Master Background Image Layer -->
+    <div class="mosaic-master-bg" id="mosaic-master-bg"></div>
 
     <!-- 1:1 Square Mosaic Fullscreen Grid (Cover Fill, Zero Black Space) -->
     <div class="mosaic-grid-wrapper">
@@ -89,6 +101,46 @@ export function createHorizontalView(router) {
             </div>
           </div>
 
+          <div class="setting-section">
+            <label class="setting-label">FULLSCREEN MASTER BACKGROUND</label>
+            <div class="bg-settings-row">
+              <label class="bg-control-btn bg-upload-label" for="input-bg-upload">
+                📁 Upload Image
+                <input type="file" id="input-bg-upload" accept="image/*" style="display:none;" />
+              </label>
+              <button class="bg-control-btn" id="btn-sample-bg" title="Use default sample background">
+                🎨 Sample BG
+              </button>
+              <button class="bg-control-btn btn-danger-soft" id="btn-clear-bg" title="Remove background">
+                ✕ Remove
+              </button>
+            </div>
+            <div class="bg-status-preview" id="bg-status-preview">
+              <div class="bg-thumb-mini" id="bg-thumb-mini"></div>
+              <span class="bg-status-text" id="bg-status-text">No background set</span>
+            </div>
+          </div>
+
+          <!-- Tile Opacity & Merge Section -->
+          <div class="setting-section">
+            <div class="setting-label-row">
+              <label class="setting-label">TILE OPACITY & MERGE</label>
+              <span class="setting-val-badge" id="opacity-val-badge">75%</span>
+            </div>
+            <div class="slider-control-row">
+              <span class="slider-min">10%</span>
+              <input type="range" class="mosaic-slider" id="slider-tile-opacity" min="10" max="100" value="75" step="5" />
+              <span class="slider-max">100%</span>
+            </div>
+            <div class="blend-mode-pills" id="blend-mode-pills">
+              <button class="blend-btn" data-blend="normal">Normal</button>
+              <button class="blend-btn" data-blend="overlay">Overlay</button>
+              <button class="blend-btn" data-blend="soft-light">Soft Light</button>
+              <button class="blend-btn" data-blend="multiply">Multiply</button>
+            </div>
+            <span class="setting-hint-text">Adjust opacity to blend guest photos with the fullscreen background.</span>
+          </div>
+
           <div class="settings-stats">
             <span>Filled Slots: <strong id="stat-photos-count">0</strong> / <strong id="stat-total-tiles">98</strong></span>
           </div>
@@ -117,6 +169,84 @@ export function createHorizontalView(router) {
   const btnModalFullscreen = container.querySelector('#btn-modal-fullscreen');
   const btnModalReset = container.querySelector('#btn-modal-reset');
   const toastEl = container.querySelector('#mosaic-toast');
+
+  // Background and opacity controls
+  const masterBgEl = container.querySelector('#mosaic-master-bg');
+  const inputBgUpload = container.querySelector('#input-bg-upload');
+  const btnSampleBg = container.querySelector('#btn-sample-bg');
+  const btnClearBg = container.querySelector('#btn-clear-bg');
+  const bgThumbMini = container.querySelector('#bg-thumb-mini');
+  const bgStatusText = container.querySelector('#bg-status-text');
+
+  const sliderTileOpacity = container.querySelector('#slider-tile-opacity');
+  const opacityValBadge = container.querySelector('#opacity-val-badge');
+  const blendButtons = container.querySelectorAll('.blend-btn');
+
+  function applyBackground(bgUrl) {
+    currentBgImage = bgUrl;
+    if (bgUrl) {
+      try {
+        localStorage.setItem('mosaic_bg_image', bgUrl);
+      } catch (e) {
+        console.warn('Storage quota exceeded, setting background for current session only');
+      }
+      masterBgEl.style.backgroundImage = `url("${bgUrl}")`;
+      masterBgEl.style.display = 'block';
+      container.classList.add('has-master-bg');
+      if (bgThumbMini) {
+        bgThumbMini.style.backgroundImage = `url("${bgUrl}")`;
+        bgThumbMini.style.display = 'block';
+      }
+      if (bgStatusText) bgStatusText.textContent = 'Active Fullscreen Background';
+    } else {
+      localStorage.removeItem('mosaic_bg_image');
+      masterBgEl.style.backgroundImage = 'none';
+      masterBgEl.style.display = 'none';
+      container.classList.remove('has-master-bg');
+      if (bgThumbMini) bgThumbMini.style.display = 'none';
+      if (bgStatusText) bgStatusText.textContent = 'Default Dark Grid (No Background)';
+    }
+  }
+
+  function applyTileOpacity(val) {
+    currentTileOpacity = parseInt(val, 10);
+    localStorage.setItem('mosaic_tile_opacity', currentTileOpacity);
+    container.style.setProperty('--tile-photo-opacity', (currentTileOpacity / 100).toString());
+    if (opacityValBadge) opacityValBadge.textContent = `${currentTileOpacity}%`;
+    if (sliderTileOpacity) sliderTileOpacity.value = currentTileOpacity;
+  }
+
+  function applyBlendMode(blend) {
+    currentBlendMode = blend;
+    localStorage.setItem('mosaic_tile_blend', blend);
+    container.style.setProperty('--tile-blend-mode', blend);
+    blendButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.blend === blend);
+    });
+  }
+
+  // Optimize and downscale uploaded background images to max 1920x1080
+  function optimizeBgImage(dataUrl, callback) {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 1920;
+      const maxH = 1080;
+      let { width, height } = img;
+      if (width > maxW || height > maxH) {
+        const ratio = Math.min(maxW / width, maxH / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      callback(canvas.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = () => callback(dataUrl);
+    img.src = dataUrl;
+  }
 
   let toastTimer = null;
   function showToast(msg) {
@@ -466,8 +596,54 @@ export function createHorizontalView(router) {
     }
   };
 
+  // Background & Opacity Event Listeners
+  if (inputBgUpload) {
+    inputBgUpload.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        optimizeBgImage(event.target.result, (optimized) => {
+          applyBackground(optimized);
+          showToast('🖼️ Fullscreen Background Applied');
+        });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    });
+  }
+
+  if (btnSampleBg) {
+    btnSampleBg.addEventListener('click', () => {
+      applyBackground('/start_bg.jpg');
+      showToast('🎨 Sample Background Applied');
+    });
+  }
+
+  if (btnClearBg) {
+    btnClearBg.addEventListener('click', () => {
+      applyBackground(null);
+      showToast('✕ Background Removed');
+    });
+  }
+
+  if (sliderTileOpacity) {
+    sliderTileOpacity.addEventListener('input', (e) => {
+      applyTileOpacity(e.target.value);
+    });
+  }
+
+  blendButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyBlendMode(btn.dataset.blend);
+    });
+  });
+
   // Initial setup
   setPreset(currentPresetKey);
+  applyBackground(currentBgImage);
+  applyTileOpacity(currentTileOpacity);
+  applyBlendMode(currentBlendMode);
 
   return container;
 }
