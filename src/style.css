@@ -854,9 +854,6 @@ html, body {
   height: 100vh;
   margin: 0;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -865,15 +862,19 @@ html, body {
   width: 100vw;
   height: 100vh;
   margin: 0;
+  padding: 0;
   box-sizing: border-box;
   display: grid;
+  gap: 0;
 }
 
 /* Individual Tile */
 .mosaic-tile {
   width: 100%;
   height: 100%;
-  aspect-ratio: 1 / 1;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
   perspective: 700px;
   position: relative;
 }
@@ -894,38 +895,42 @@ html, body {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .tile-front {
-  background: rgba(14, 18, 28, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(14, 18, 28, 0.65);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.2);
   font-family: var(--font-mono);
   font-size: var(--tile-font-size, 0.7rem);
-  transition: all 0.2s;
+  transition: background 0.2s;
 }
 
 /* Empty tile styling when master background is active */
 .mosaic-fullscreen-container.has-master-bg .tile-front {
-  background: rgba(6, 10, 18, 0.42);
+  background: rgba(6, 10, 18, 0.35);
   backdrop-filter: blur(0.5px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .tile-front:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.6);
 }
 
 .tile-back {
   transform: rotateY(180deg);
   background: transparent;
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-right: 1px solid rgba(56, 189, 248, 0.4);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.4);
 }
 
 .tile-back img {
@@ -945,7 +950,7 @@ html, body {
 
 .mosaic-tile.has-photo:hover .tile-back {
   border-color: #38bdf8;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+  box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.6);
   z-index: 10;
 }
 

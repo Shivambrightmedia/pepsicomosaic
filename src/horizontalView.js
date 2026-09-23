@@ -5,12 +5,12 @@
 import { subscribeToPhotos, resetRemotePhotos } from './services/firebase.js';
 
 export const GRID_PRESETS = {
-  50: { label: '50', cols: 10, rows: 5, total: 50, gap: '4px', fontSize: 'clamp(11px, 1.3vw, 20px)' },
-  100: { label: '100', cols: 14, rows: 7, total: 98, gap: '3px', fontSize: 'clamp(8px, 0.95vw, 15px)' },
-  150: { label: '150', cols: 16, rows: 9, total: 144, gap: '3px', fontSize: 'clamp(8px, 0.8vw, 13px)' },
-  200: { label: '200', cols: 20, rows: 10, total: 200, gap: '2px', fontSize: 'clamp(7px, 0.7vw, 11px)' },
-  400: { label: '400', cols: 27, rows: 15, total: 405, gap: '2px', fontSize: 'clamp(5px, 0.5vw, 9px)' },
-  500: { label: '500', cols: 30, rows: 17, total: 510, gap: '2px', fontSize: 'clamp(5px, 0.45vw, 8px)' }
+  50: { label: '50', cols: 10, rows: 5, total: 50, gap: '0px', fontSize: 'clamp(11px, 1.3vw, 20px)' },
+  100: { label: '100', cols: 14, rows: 7, total: 98, gap: '0px', fontSize: 'clamp(8px, 0.95vw, 15px)' },
+  150: { label: '150', cols: 16, rows: 9, total: 144, gap: '0px', fontSize: 'clamp(8px, 0.8vw, 13px)' },
+  200: { label: '200', cols: 20, rows: 10, total: 200, gap: '0px', fontSize: 'clamp(7px, 0.7vw, 11px)' },
+  400: { label: '400', cols: 27, rows: 15, total: 405, gap: '0px', fontSize: 'clamp(5px, 0.5vw, 9px)' },
+  500: { label: '500', cols: 30, rows: 17, total: 510, gap: '0px', fontSize: 'clamp(5px, 0.45vw, 8px)' }
 };
 
 export function createHorizontalView(router) {
@@ -301,16 +301,17 @@ export function createHorizontalView(router) {
       btn.classList.toggle('active', btn.dataset.preset === key);
     });
 
-    const { cols, rows, gap, fontSize } = activePreset;
+    const { cols, rows, fontSize } = activePreset;
     gridEl.style.setProperty('--grid-cols', cols);
     gridEl.style.setProperty('--grid-rows', rows);
-    gridEl.style.setProperty('--grid-gap', gap);
+    gridEl.style.setProperty('--grid-gap', '0px');
     gridEl.style.setProperty('--tile-font-size', fontSize);
 
     gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-    gridEl.style.gap = gap;
-    gridEl.style.padding = gap;
+    gridEl.style.gap = '0px';
+    gridEl.style.padding = '0px';
+    gridEl.style.margin = '0px';
     gridEl.style.width = '100vw';
     gridEl.style.height = '100vh';
 
