@@ -3,6 +3,7 @@
 // Fullscreen (F11) cover-fills the screen with zero black space.
 // Approved photos appear BIG first, then fly, shrink, flip, and fit into a random grid slot.
 import { subscribeToPhotos, resetRemotePhotos } from './services/firebase.js';
+import { savePredefinedImages, getPredefinedImages, clearPredefinedImages } from './services/imageStorage.js';
 
 export const GRID_PRESETS = {
   50: { label: '50', cols: 10, rows: 5, total: 50, gap: '0px', fontSize: 'clamp(11px, 1.3vw, 20px)' },
@@ -33,6 +34,9 @@ export function createHorizontalView(router) {
 
   // Tile blend mode ('normal' | 'overlay' | 'soft-light' | 'multiply')
   let currentBlendMode = localStorage.getItem('mosaic_tile_blend') || 'normal';
+
+  // Predefined / filler images state
+  let predefinedPhotos = [];
 
   container.innerHTML = `
     <!-- Top-Right Settings Button (Toggled with 'F' key) -->
@@ -141,6 +145,28 @@ export function createHorizontalView(router) {
             <span class="setting-hint-text">Adjust opacity to blend guest photos with the fullscreen background.</span>
           </div>
 
+          <!-- Predefined / Filler Images Section -->
+          <div class="setting-section">
+            <div class="setting-label-row">
+              <label class="setting-label">PREDEFINED / FILLER PHOTOS</label>
+              <span class="setting-val-badge" id="predefined-val-badge">0 Loaded</span>
+            </div>
+            <div class="bg-settings-row">
+              <label class="bg-control-btn bg-upload-label" for="input-folder-upload">
+                📁 Select Folder
+                <input type="file" id="input-folder-upload" webkitdirectory directory multiple accept="image/*" style="display:none;" />
+              </label>
+              <label class="bg-control-btn bg-upload-label" for="input-files-upload">
+                🖼️ Select Files
+                <input type="file" id="input-files-upload" multiple accept="image/*" style="display:none;" />
+              </label>
+              <button class="bg-control-btn btn-danger-soft" id="btn-clear-predefined" title="Clear predefined filler images">
+                ✕ Clear
+              </button>
+            </div>
+            <span class="setting-hint-text">Select laptop folder of images to pre-fill the wall. Live guest smiles flip and replace them!</span>
+          </div>
+
           <div class="settings-stats">
             <span>Filled Slots: <strong id="stat-photos-count">0</strong> / <strong id="stat-total-tiles">98</strong></span>
           </div>
@@ -181,6 +207,18 @@ export function createHorizontalView(router) {
   const sliderTileOpacity = container.querySelector('#slider-tile-opacity');
   const opacityValBadge = container.querySelector('#opacity-val-badge');
   const blendButtons = container.querySelectorAll('.blend-btn');
+
+  // Predefined photos elements
+  const inputFolderUpload = container.querySelector('#input-folder-upload');
+  const inputFilesUpload = container.querySelector('#input-files-upload');
+  const btnClearPredefined = container.querySelector('#btn-clear-predefined');
+  const predefinedValBadge = container.querySelector('#predefined-val-badge');
+
+  function updatePredefinedBadge() {
+    if (predefinedValBadge) {
+      predefinedValBadge.textContent = `${predefinedPhotos.length} Loaded`;
+    }
+  }
 
   function applyBackground(bgUrl) {
     currentBgImage = bgUrl;
@@ -286,7 +324,11 @@ export function createHorizontalView(router) {
   function updateStats() {
     const photos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
     const filledCount = photos.filter(Boolean).length;
-    statPhotos.textContent = filledCount;
+    if (predefinedPhotos.length > 0 && filledCount < activePreset.total) {
+      statPhotos.textContent = `${filledCount} live (+${activePreset.total - filledCount} filler)`;
+    } else {
+      statPhotos.textContent = filledCount;
+    }
     statTotal.textContent = activePreset.total;
   }
 
@@ -319,7 +361,7 @@ export function createHorizontalView(router) {
     updateStats();
   }
 
-  // Render square grid tiles
+  // Render square grid tiles with user photos or predefined filler photos
   function renderGrid() {
     const photos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
     const total = activePreset.total;
@@ -330,13 +372,25 @@ export function createHorizontalView(router) {
       tile.className = 'mosaic-tile';
       tile.dataset.index = i;
 
-      const photo = photos[i];
-      if (photo) {
-        tile.classList.add('has-photo');
+      const userPhoto = photos[i];
+      const predefinedPhoto = (!userPhoto && predefinedPhotos.length > 0)
+        ? predefinedPhotos[i % predefinedPhotos.length]
+        : null;
+
+      if (userPhoto) {
+        tile.classList.add('has-photo', 'user-photo');
         tile.innerHTML = `
           <div class="tile-card is-flipped">
             <div class="tile-front"></div>
-            <div class="tile-back"><img src="${photo}" alt="Tile" /></div>
+            <div class="tile-back"><img src="${userPhoto}" alt="User Smile" /></div>
+          </div>
+        `;
+      } else if (predefinedPhoto) {
+        tile.classList.add('has-photo', 'predefined-photo');
+        tile.innerHTML = `
+          <div class="tile-card is-flipped">
+            <div class="tile-front"></div>
+            <div class="tile-back"><img src="${predefinedPhoto}" alt="Filler Photo" /></div>
           </div>
         `;
       } else {
@@ -435,12 +489,24 @@ export function createHorizontalView(router) {
         localStorage.setItem('mosaic_photos', JSON.stringify(photos));
 
         // Update target tile with photo and celebratory flash
-        targetTile.classList.remove('tile-targeted');
-        targetTile.classList.add('has-photo', 'tile-docked');
+        targetTile.classList.remove('tile-targeted', 'predefined-photo');
+        targetTile.classList.add('has-photo', 'user-photo', 'tile-docked');
         const card = targetTile.querySelector('.tile-card');
         const back = targetTile.querySelector('.tile-back');
-        if (back) back.innerHTML = `<img src="${imageUrl}" alt="Tile" />`;
-        if (card) card.classList.add('is-flipped');
+
+        if (card && card.classList.contains('is-flipped')) {
+          // Predefined photo was already flipped: flip front, replace img, flip back!
+          card.style.transition = 'transform 0.4s ease';
+          card.classList.remove('is-flipped');
+          setTimeout(() => {
+            if (back) back.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
+            card.style.transition = 'transform 2.0s cubic-bezier(0.22, 1, 0.36, 1)';
+            card.classList.add('is-flipped');
+          }, 350);
+        } else {
+          if (back) back.innerHTML = `<img src="${imageUrl}" alt="Smile Photo" />`;
+          if (card) card.classList.add('is-flipped');
+        }
 
         // Smoothly fade out flyer during tile flip
         flyer.style.transition = 'opacity 0.4s ease';
@@ -640,11 +706,98 @@ export function createHorizontalView(router) {
     });
   });
 
+  // Handle folder or multiple image files selection
+  function handlePredefinedFiles(fileList) {
+    const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) {
+      showToast('⚠️ No image files found');
+      return;
+    }
+
+    showToast(`⏳ Loading ${files.length} filler images...`);
+
+    let processed = 0;
+    const imagesArray = [];
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        optimizeTileImage(e.target.result, (optimized) => {
+          imagesArray.push(optimized);
+          processed++;
+          if (processed === files.length) {
+            predefinedPhotos = imagesArray;
+            savePredefinedImages(imagesArray);
+            updatePredefinedBadge();
+            renderGrid();
+            updateStats();
+            showToast(`✓ Loaded ${imagesArray.length} predefined images!`);
+          }
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Optimize and crop tile images to 320x320 for smooth performance
+  function optimizeTileImage(dataUrl, callback) {
+    const img = new Image();
+    img.onload = () => {
+      const size = 320;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const minDim = Math.min(img.width, img.height);
+      const sx = (img.width - minDim) / 2;
+      const sy = (img.height - minDim) / 2;
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      callback(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => callback(dataUrl);
+    img.src = dataUrl;
+  }
+
+  if (inputFolderUpload) {
+    inputFolderUpload.addEventListener('change', (e) => {
+      handlePredefinedFiles(e.target.files);
+      e.target.value = '';
+    });
+  }
+
+  if (inputFilesUpload) {
+    inputFilesUpload.addEventListener('change', (e) => {
+      handlePredefinedFiles(e.target.files);
+      e.target.value = '';
+    });
+  }
+
+  if (btnClearPredefined) {
+    btnClearPredefined.addEventListener('click', async () => {
+      predefinedPhotos = [];
+      await clearPredefinedImages();
+      updatePredefinedBadge();
+      renderGrid();
+      updateStats();
+      showToast('✕ Predefined images cleared');
+    });
+  }
+
   // Initial setup
   setPreset(currentPresetKey);
   applyBackground(currentBgImage);
   applyTileOpacity(currentTileOpacity);
   applyBlendMode(currentBlendMode);
+
+  // Load saved predefined images from IndexedDB
+  getPredefinedImages().then((imgs) => {
+    if (imgs && imgs.length > 0) {
+      predefinedPhotos = imgs;
+      updatePredefinedBadge();
+      renderGrid();
+      updateStats();
+    }
+  });
 
   return container;
 }
