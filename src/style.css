@@ -63,7 +63,8 @@ html, body {
 }
 
 .start-screen-card.start-clean-card {
-  justify-content: space-around;
+  justify-content: center;
+  gap: 60px;
   padding: clamp(60px, 10vh, 120px) 24px;
 }
 
