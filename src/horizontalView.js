@@ -415,6 +415,16 @@ export function createHorizontalView(router) {
     updateStats();
   }
 
+  // Preload image helper: resolves with URL if loaded OK, rejects if broken
+  function preloadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(url);
+      img.onerror = () => reject(url);
+      img.src = url;
+    });
+  }
+
   // Render square grid tiles with user photos or predefined filler photos
   function renderGrid() {
     const photos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
@@ -431,13 +441,44 @@ export function createHorizontalView(router) {
       const userPhoto = photos[i];
 
       if (userPhoto) {
-        tile.classList.add('has-photo', 'user-photo');
-        tile.innerHTML = `
-          <div class="tile-card is-flipped">
-            <div class="tile-front"><img src="${userPhoto}" alt="User Smile" /></div>
-            <div class="tile-back"><img src="${userPhoto}" alt="User Smile" /></div>
-          </div>
-        `;
+        // Start with predefined filler (or empty) while we verify Cloudinary loads
+        if (numPredefined > 0) {
+          const backPhoto = predefinedPhotos[i % numPredefined];
+          const frontPhoto = predefinedPhotos[(i + halfOffset) % numPredefined];
+          tile.classList.add('has-photo', 'predefined-photo');
+          tile.innerHTML = `
+            <div class="tile-card is-flipped">
+              <div class="tile-front"><img src="${frontPhoto}" alt="Folder Photo" /></div>
+              <div class="tile-back"><img src="${backPhoto}" alt="Folder Photo" /></div>
+            </div>
+          `;
+        } else {
+          tile.innerHTML = `
+            <div class="tile-card is-flipped">
+              <div class="tile-front"></div>
+              <div class="tile-back"></div>
+            </div>
+          `;
+        }
+
+        // Async-verify: only swap in user photo after confirmed loaded
+        ((tileRef, photoUrl) => {
+          preloadImage(photoUrl).then(() => {
+            tileRef.classList.remove('predefined-photo');
+            tileRef.classList.add('has-photo', 'user-photo');
+            const front = tileRef.querySelector('.tile-front');
+            const back = tileRef.querySelector('.tile-back');
+            if (front) front.innerHTML = `<img src="${photoUrl}" alt="User Smile" />`;
+            if (back) back.innerHTML = `<img src="${photoUrl}" alt="User Smile" />`;
+          }).catch(() => {
+            // Image failed → remove from localStorage so we don't keep retrying
+            console.warn('[renderGrid] Image failed to load, removing:', photoUrl);
+            const stored = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
+            const idx = stored.indexOf(photoUrl);
+            if (idx !== -1) { stored[idx] = null; localStorage.setItem('mosaic_photos', JSON.stringify(stored)); }
+          });
+        })(tile, userPhoto);
+
       } else if (numPredefined > 0) {
         // Pre-populate BOTH front and back with photos from the folder so card never turns to black
         const backPhoto = predefinedPhotos[i % numPredefined];
@@ -482,6 +523,16 @@ export function createHorizontalView(router) {
   }
 
   function animateFlyPhoto(imageUrl, onComplete) {
+    // Pre-validate image loads before doing anything
+    preloadImage(imageUrl).then(() => {
+      _doAnimateFly(imageUrl, onComplete);
+    }).catch(() => {
+      console.warn('[animateFly] Image failed to load, skipping:', imageUrl);
+      if (onComplete) onComplete();
+    });
+  }
+
+  function _doAnimateFly(imageUrl, onComplete) {
     const photos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
     const total = activePreset.total;
 
@@ -604,6 +655,21 @@ export function createHorizontalView(router) {
         return;
       }
 
+      // Validate each Cloudinary URL actually loads before placing on grid
+      showToast(`🔍 Validating ${cloudPhotos.length} photos...`);
+      const validationResults = await Promise.allSettled(
+        cloudPhotos.map(url => preloadImage(url))
+      );
+      const validPhotos = validationResults
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value);
+
+      if (validPhotos.length === 0) {
+        showToast('⚠️ No photos loaded successfully from Cloudinary');
+        isRestoringBackup = false;
+        return;
+      }
+
       const localPhotos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
       const total = activePreset.total;
       let addedCount = 0;
@@ -620,8 +686,8 @@ export function createHorizontalView(router) {
         [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
       }
 
-      // Distribute Cloudinary folder photos into randomly chosen empty slots
-      cloudPhotos.forEach(url => {
+      // Distribute only validated photos into randomly chosen empty slots
+      validPhotos.forEach(url => {
         seenPhotos.add(url);
         if (!localPhotos.includes(url)) {
           if (availableIndices.length > 0) {
@@ -637,11 +703,15 @@ export function createHorizontalView(router) {
       updateStats();
 
       // Sync restored photos back to Firebase Realtime Database
-      cloudPhotos.forEach(url => {
+      validPhotos.forEach(url => {
         publishPhoto(url).catch(() => { });
       });
 
-      showToast(`✓ Backup restored: ${cloudPhotos.length} Cloudinary photos on wall!`);
+      const failedCount = cloudPhotos.length - validPhotos.length;
+      const msg = failedCount > 0
+        ? `✓ Restored ${validPhotos.length} photos (${failedCount} failed to load)`
+        : `✓ Backup restored: ${validPhotos.length} photos on wall!`;
+      showToast(msg);
     } catch (err) {
       console.error('[Backup] Cloudinary restore error:', err);
       showToast('⚠️ Failed to load Cloudinary backup');

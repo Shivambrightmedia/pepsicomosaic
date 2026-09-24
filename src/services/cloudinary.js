@@ -82,6 +82,8 @@ export async function fetchFolderPhotos(folder = FOLDER) {
     } catch (err) {
       console.warn(`[Cloudinary] Backup endpoint ${endpoint} failed:`, err);
     }
+
+
   }
 
   // 2. Direct fallback using Cloudinary Search API with Basic Auth
