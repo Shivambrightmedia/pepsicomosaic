@@ -937,7 +937,7 @@ export function createHorizontalView(router) {
     stopAmbientFlips();
     ambientFlipInterval = setInterval(() => {
       triggerAmbientFlips();
-    }, 4500); // Trigger every 4.5 seconds
+    }, 3000); // 3.0s cycle -> ~0.8s still break between waves
   }
 
   function stopAmbientFlips() {
