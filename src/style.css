@@ -457,7 +457,21 @@ body {
   box-shadow: 0 0 28px rgba(239, 68, 68, 0.95), 0 0 45px rgba(239, 68, 68, 0.5);
 }
 
-/* Green Dot (Center) */
+/* Yellow Dot (Center) */
+.dot-yellow {
+  background: radial-gradient(circle at 35% 35%, #fde047, #ca8a04);
+  opacity: 0.65;
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.45);
+}
+
+.dot-yellow.active {
+  background: radial-gradient(circle at 35% 35%, #fef08a, #eab308);
+  opacity: 1;
+  transform: scale(1.15);
+  box-shadow: 0 0 28px rgba(234, 179, 8, 0.95), 0 0 45px rgba(234, 179, 8, 0.5);
+}
+
+/* Green Dot (Right) */
 .dot-green {
   background: radial-gradient(circle at 35% 35%, #4ade80, #16a34a);
   opacity: 0.65;
@@ -471,19 +485,6 @@ body {
   box-shadow: 0 0 32px rgba(34, 197, 94, 0.95), 0 0 50px rgba(34, 197, 94, 0.55);
 }
 
-/* Yellow Dot (Right) */
-.dot-yellow {
-  background: radial-gradient(circle at 35% 35%, #fde047, #ca8a04);
-  opacity: 0.65;
-  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.45);
-}
-
-.dot-yellow.active {
-  background: radial-gradient(circle at 35% 35%, #fef08a, #eab308);
-  opacity: 1;
-  transform: scale(1.15);
-  box-shadow: 0 0 28px rgba(234, 179, 8, 0.95), 0 0 45px rgba(234, 179, 8, 0.5);
-}
 
 /* Countdown Number (Shows 20) & Prompt */
 .camera-prompt-zone {

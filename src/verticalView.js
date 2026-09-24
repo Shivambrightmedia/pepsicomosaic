@@ -25,8 +25,8 @@ export function createVerticalView(router) {
         <div class="capture-header-zone">
           <div class="traffic-lights-capsule">
             <div class="light-dot dot-red" id="dot-red" title="Rude / Frown"></div>
-            <div class="light-dot dot-green" id="dot-green" title="Smile (1s Hold)"></div>
             <div class="light-dot dot-yellow" id="dot-yellow" title="Normal / Neutral"></div>
+            <div class="light-dot dot-green" id="dot-green" title="Smile (1s Hold)"></div>
           </div>
 
           <!-- Countdown (shows 10 instead of 1.0) & Prompt -->
