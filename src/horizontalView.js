@@ -896,7 +896,7 @@ export function createHorizontalView(router) {
 
   if (btnSampleBg) {
     btnSampleBg.addEventListener('click', () => {
-      applyBackground('/start_bg.jpg');
+      applyBackground('/play1.jpg');
       showToast('🎨 Sample Background Applied');
     });
   }

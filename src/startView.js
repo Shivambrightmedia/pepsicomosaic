@@ -1,4 +1,5 @@
-// 1080x1920 Portrait Kiosk Start Screen (Cosmic AI Photo Booth)
+// 1080x1920 Portrait Kiosk Start Screen (Play Screen)
+import play1Bg from '../dist/play1.jpg';
 
 export function createStartView(router) {
   const container = document.createElement('div');
@@ -6,29 +7,14 @@ export function createStartView(router) {
 
   container.innerHTML = `
     <div class="start-screen-card start-clean-card">
-      <div class="start-bg-layer"></div>
-      <div class="start-ambient-glow"></div>
-      <div class="orbital-glow-arc"></div>
+      <div class="start-bg-layer" style="background-image: url('${play1Bg}');"></div>
 
-
-      <!-- Center Glowing START Button -->
+      <!-- Center PLAY Button matching play1.jpg -->
       <div class="start-btn-center">
-        <button class="glowing-circle-btn" id="btn-start-kiosk" title="Start Photobooth">
-          <div class="circle-outer-glow"></div>
-          <div class="circle-gradient-border"></div>
-          <div class="circle-content">
-            <div class="play-arrow">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </div>
-            <span class="start-word">START</span>
-          </div>
+        <button class="play-pill-btn" id="btn-start-kiosk" title="Play">
+          PLAY
         </button>
       </div>
-
-      <!-- Bottom Tagline -->
-      <div class="start-footer-tag">MAKE MEMORIES MAGICAL</div>
     </div>
   `;
 
@@ -36,6 +22,16 @@ export function createStartView(router) {
   if (btnStart) {
     btnStart.addEventListener('click', () => {
       router.navigate('/vertical');
+    });
+  }
+
+  // Also click anywhere on card to start
+  const card = container.querySelector('.start-screen-card');
+  if (card) {
+    card.addEventListener('click', (e) => {
+      if (e.target !== btnStart && !btnStart.contains(e.target)) {
+        router.navigate('/vertical');
+      }
     });
   }
 
