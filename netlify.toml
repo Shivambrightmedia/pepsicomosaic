@@ -9,6 +9,7 @@
   from = "/api/cloudinary/backup"
   to = "/.netlify/functions/backup"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"

@@ -61,17 +61,27 @@ const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET || 'JECGZNA3M-Bzra
  * @returns {Promise<string[]>} Array of image secure URLs
  */
 export async function fetchFolderPhotos(folder = FOLDER) {
-  // 1. Try local Vite server proxy endpoint (/api/cloudinary/backup)
-  try {
-    const res = await fetch('/api/cloudinary/backup');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
-        return data.photos;
+  // 1. Try Netlify function or local Vite server proxy endpoints
+  const endpoints = [
+    '/.netlify/functions/backup',
+    '/api/cloudinary/backup'
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+            return data.photos;
+          }
+        }
       }
+    } catch (err) {
+      console.warn(`[Cloudinary] Backup endpoint ${endpoint} failed:`, err);
     }
-  } catch (err) {
-    console.warn('[Cloudinary] Local backup proxy unavailable, trying direct search:', err);
   }
 
   // 2. Direct fallback using Cloudinary Search API with Basic Auth
