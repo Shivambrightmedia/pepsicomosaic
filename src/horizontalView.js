@@ -889,8 +889,8 @@ export function createHorizontalView(router) {
     const candidates = Array.from(gridEl.querySelectorAll('.mosaic-tile.predefined-photo'));
     if (candidates.length === 0) return;
 
-    // Pick 10 to 12 tiles randomly
-    const count = Math.min(candidates.length, Math.floor(Math.random() * 3) + 10); // 10, 11, or 12
+    // Pick 90% of available predefined tiles across the grid
+    const count = Math.max(1, Math.floor(candidates.length * 0.90));
     const shuffled = candidates.slice().sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, count);
 
@@ -901,8 +901,8 @@ export function createHorizontalView(router) {
       if (!card || !front || !back) return;
       if (card.dataset.isFlipping === 'true') return;
 
-      // Stagger slightly (0 to 660ms) for an organic wave ripple across the wall
-      const delay = index * 60;
+      // Stagger across 0 to 900ms for a massive organic shimmer ripple across 90% of the wall
+      const delay = Math.floor((index / count) * 900);
       setTimeout(() => {
         if (isAnimatingPhoto) return;
         if (tile.classList.contains('user-photo')) return; // Safety check: never flip user photos
@@ -937,7 +937,7 @@ export function createHorizontalView(router) {
     stopAmbientFlips();
     ambientFlipInterval = setInterval(() => {
       triggerAmbientFlips();
-    }, 1000); // 3.0s cycle -> ~0.8s still break between waves
+    }, 3400); // ~2.5s wave motion + ~0.8s resting break
   }
 
   function stopAmbientFlips() {
