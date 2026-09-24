@@ -559,20 +559,25 @@ export function createHorizontalView(router) {
       const total = activePreset.total;
       let addedCount = 0;
 
-      // Merge Cloudinary folder photos into local mosaic grid slots
+      // Find all unoccupied slots across the entire grid
+      const availableIndices = [];
+      for (let i = 0; i < total; i++) {
+        if (!localPhotos[i]) availableIndices.push(i);
+      }
+
+      // Shuffle available indices randomly (Fisher-Yates)
+      for (let i = availableIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
+      }
+
+      // Distribute Cloudinary folder photos into randomly chosen empty slots
       cloudPhotos.forEach(url => {
         seenPhotos.add(url);
         if (!localPhotos.includes(url)) {
-          // Find next available empty slot
-          let emptyIdx = -1;
-          for (let i = 0; i < total; i++) {
-            if (!localPhotos[i]) {
-              emptyIdx = i;
-              break;
-            }
-          }
-          if (emptyIdx !== -1) {
-            localPhotos[emptyIdx] = url;
+          if (availableIndices.length > 0) {
+            const randomSlot = availableIndices.pop();
+            localPhotos[randomSlot] = url;
             addedCount++;
           }
         }
@@ -697,19 +702,24 @@ export function createHorizontalView(router) {
       const total = activePreset.total;
       let changed = false;
 
+      // Find all unoccupied slots across the entire grid
+      const availableIndices = [];
+      for (let i = 0; i < total; i++) {
+        if (!localPhotos[i]) availableIndices.push(i);
+      }
+
+      // Shuffle available indices randomly
+      for (let i = availableIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
+      }
+
       cloudPhotos.forEach(({ imageUrl }) => {
         seenPhotos.add(imageUrl);
         if (!localPhotos.includes(imageUrl)) {
-          // Find next unoccupied slot
-          let emptyIdx = -1;
-          for (let i = 0; i < total; i++) {
-            if (!localPhotos[i]) {
-              emptyIdx = i;
-              break;
-            }
-          }
-          if (emptyIdx !== -1) {
-            localPhotos[emptyIdx] = imageUrl;
+          if (availableIndices.length > 0) {
+            const randomSlot = availableIndices.pop();
+            localPhotos[randomSlot] = imageUrl;
             changed = true;
           }
         }
