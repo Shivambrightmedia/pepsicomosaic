@@ -1,5 +1,4 @@
 // 1080x1920 Portrait Kiosk Start Screen (Play Screen)
-import play1Bg from '../dist/play1.jpg';
 
 export function createStartView(router) {
   const container = document.createElement('div');
@@ -7,7 +6,7 @@ export function createStartView(router) {
 
   container.innerHTML = `
     <div class="start-screen-card start-clean-card">
-      <div class="start-bg-layer" style="background-image: url('${play1Bg}');"></div>
+      <div class="start-bg-layer"></div>
 
       <!-- Center PLAY Button matching play1.jpg -->
       <div class="start-btn-center">

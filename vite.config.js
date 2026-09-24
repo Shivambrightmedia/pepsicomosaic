@@ -1,27 +1,4 @@
 import { defineConfig, loadEnv } from 'vite';
-import fs from 'node:fs';
-import path from 'node:path';
-
-// Sync play assets from dist to public if needed
-try {
-  const root = process.cwd();
-  const distP1 = path.join(root, 'dist', 'play1.jpg');
-  const pubP1 = path.join(root, 'public', 'play1.jpg');
-  if (fs.existsSync(distP1) && !fs.existsSync(pubP1)) {
-    fs.copyFileSync(distP1, pubP1);
-  }
-  const distP2 = path.join(root, 'dist', 'play2.jpg');
-  const pubP2 = path.join(root, 'public', 'play2.jpg');
-  if (fs.existsSync(distP2) && !fs.existsSync(pubP2)) {
-    fs.copyFileSync(distP2, pubP2);
-  }
-  const oldBg = path.join(root, 'public', 'start_bg.jpg');
-  if (fs.existsSync(oldBg)) {
-    fs.unlinkSync(oldBg);
-  }
-} catch (e) {
-  console.warn('[Vite Config] Asset sync warning:', e);
-}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
