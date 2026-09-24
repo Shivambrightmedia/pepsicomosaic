@@ -589,7 +589,7 @@ export function createHorizontalView(router) {
 
       // Sync restored photos back to Firebase Realtime Database
       cloudPhotos.forEach(url => {
-        publishPhoto(url).catch(() => {});
+        publishPhoto(url).catch(() => { });
       });
 
       showToast(`✓ Backup restored: ${cloudPhotos.length} Cloudinary photos on wall!`);
@@ -630,9 +630,9 @@ export function createHorizontalView(router) {
   btnModalFullscreen.addEventListener('click', () => {
     closeModal();
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
   });
 
@@ -937,7 +937,7 @@ export function createHorizontalView(router) {
     stopAmbientFlips();
     ambientFlipInterval = setInterval(() => {
       triggerAmbientFlips();
-    }, 3000); // 3.0s cycle -> ~0.8s still break between waves
+    }, 1000); // 3.0s cycle -> ~0.8s still break between waves
   }
 
   function stopAmbientFlips() {
