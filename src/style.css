@@ -1249,6 +1249,18 @@ body {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
+.settings-action-btn.btn-backup {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.settings-action-btn.btn-backup:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+}
+
 /* ========================================================
    NEW PHOTO SHOWCASE & DOCKING FLYER ANIMATION
 ======================================================== */

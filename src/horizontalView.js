@@ -2,8 +2,9 @@
 // Press 'F' to toggle Settings Icon. Click Settings Icon for Grid Customization.
 // Fullscreen (F11) cover-fills the screen with zero black space.
 // Approved photos appear BIG first, then fly, shrink, flip, and fit into a random grid slot.
-import { subscribeToPhotos, resetRemotePhotos } from './services/firebase.js';
+import { subscribeToPhotos, resetRemotePhotos, publishPhoto } from './services/firebase.js';
 import { savePredefinedImages, getPredefinedImages, clearPredefinedImages } from './services/imageStorage.js';
+import { fetchFolderPhotos } from './services/cloudinary.js';
 
 export const GRID_PRESETS = {
   50: { label: '50', cols: 10, rows: 5, total: 50, gap: '0px', fontSize: 'clamp(11px, 1.3vw, 20px)' },
@@ -175,6 +176,9 @@ export function createHorizontalView(router) {
             <button class="settings-action-btn" id="btn-modal-fullscreen">
               📺 Fullscreen (F11)
             </button>
+            <button class="settings-action-btn btn-backup" id="btn-modal-backup" title="Restore Cloudinary backup photos (Key: 8)">
+              ☁️ Restore Backup (8)
+            </button>
             <button class="settings-action-btn btn-danger" id="btn-modal-reset">
               ↺ Reset Photos
             </button>
@@ -193,6 +197,7 @@ export function createHorizontalView(router) {
   const statPhotos = container.querySelector('#stat-photos-count');
   const statTotal = container.querySelector('#stat-total-tiles');
   const btnModalFullscreen = container.querySelector('#btn-modal-fullscreen');
+  const btnModalBackup = container.querySelector('#btn-modal-backup');
   const btnModalReset = container.querySelector('#btn-modal-reset');
   const toastEl = container.querySelector('#mosaic-toast');
 
@@ -534,11 +539,73 @@ export function createHorizontalView(router) {
     }, 1200);
   }
 
-  // Keyboard 'F' toggles setting icon
+  // Emergency Backup: Press '8' to restore all Cloudinary folder photos into grid and sync to Firebase
+  let isRestoringBackup = false;
+
+  async function restoreCloudinaryBackup() {
+    if (isRestoringBackup) return;
+    isRestoringBackup = true;
+    showToast('⏳ Fetching backup from Cloudinary folder...');
+
+    try {
+      const cloudPhotos = await fetchFolderPhotos();
+      if (!cloudPhotos || cloudPhotos.length === 0) {
+        showToast('⚠️ No photos found in Cloudinary folder');
+        isRestoringBackup = false;
+        return;
+      }
+
+      const localPhotos = JSON.parse(localStorage.getItem('mosaic_photos') || '[]');
+      const total = activePreset.total;
+      let addedCount = 0;
+
+      // Merge Cloudinary folder photos into local mosaic grid slots
+      cloudPhotos.forEach(url => {
+        seenPhotos.add(url);
+        if (!localPhotos.includes(url)) {
+          // Find next available empty slot
+          let emptyIdx = -1;
+          for (let i = 0; i < total; i++) {
+            if (!localPhotos[i]) {
+              emptyIdx = i;
+              break;
+            }
+          }
+          if (emptyIdx !== -1) {
+            localPhotos[emptyIdx] = url;
+            addedCount++;
+          }
+        }
+      });
+
+      localStorage.setItem('mosaic_photos', JSON.stringify(localPhotos));
+      renderGrid();
+      updateStats();
+
+      // Sync restored photos back to Firebase Realtime Database
+      cloudPhotos.forEach(url => {
+        publishPhoto(url).catch(() => {});
+      });
+
+      showToast(`✓ Backup restored: ${cloudPhotos.length} Cloudinary photos on wall!`);
+    } catch (err) {
+      console.error('[Backup] Cloudinary restore error:', err);
+      showToast('⚠️ Failed to load Cloudinary backup');
+    } finally {
+      isRestoringBackup = false;
+    }
+  }
+
+  // Keyboard Shortcuts: 'F' toggles settings icon, '8' restores Cloudinary backup
   function handleKeyDown(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
     if (e.key === 'f' || e.key === 'F') {
       e.preventDefault();
       toggleSettingIcon();
+    } else if (e.key === '8') {
+      e.preventDefault();
+      restoreCloudinaryBackup();
     } else if (e.key === 'Escape') {
       closeModal();
     }
@@ -563,6 +630,13 @@ export function createHorizontalView(router) {
       document.exitFullscreen().catch(() => {});
     }
   });
+
+  if (btnModalBackup) {
+    btnModalBackup.addEventListener('click', () => {
+      closeModal();
+      restoreCloudinaryBackup();
+    });
+  }
 
   btnModalReset.addEventListener('click', async () => {
     if (confirm('Reset mosaic wall photos across all connected screens?')) {

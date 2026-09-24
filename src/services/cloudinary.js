@@ -51,3 +51,54 @@ export async function uploadPhoto(photoDataUrl) {
     };
   }
 }
+
+const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '528467798978286';
+const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET || 'JECGZNA3M-BzraYbs2mQPHy9RN8';
+
+/**
+ * Fetch all photos stored in the Cloudinary folder (Backup / Restore)
+ * @param {string} folder - Cloudinary folder name (default: FOLDER)
+ * @returns {Promise<string[]>} Array of image secure URLs
+ */
+export async function fetchFolderPhotos(folder = FOLDER) {
+  // 1. Try local Vite server proxy endpoint (/api/cloudinary/backup)
+  try {
+    const res = await fetch('/api/cloudinary/backup');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+        return data.photos;
+      }
+    }
+  } catch (err) {
+    console.warn('[Cloudinary] Local backup proxy unavailable, trying direct search:', err);
+  }
+
+  // 2. Direct fallback using Cloudinary Search API with Basic Auth
+  try {
+    const auth = btoa(`${API_KEY}:${API_SECRET}`);
+    const searchEndpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/search`;
+
+    const res = await fetch(searchEndpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        expression: `asset_folder:${folder} OR folder:${folder}`,
+        max_results: 500
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.resources || []).map(r => r.secure_url);
+    }
+  } catch (err) {
+    console.error('[Cloudinary] Direct search fetch failed:', err);
+  }
+
+  return [];
+}
+
