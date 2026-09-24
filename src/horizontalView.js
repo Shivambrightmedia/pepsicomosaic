@@ -106,81 +106,90 @@ export function createHorizontalView(router) {
             </div>
           </div>
 
-          <div class="setting-section">
-            <label class="setting-label">FULLSCREEN MASTER BACKGROUND</label>
-            <div class="bg-settings-row">
-              <label class="bg-control-btn bg-upload-label" for="input-bg-upload">
-                📁 Upload Image
-                <input type="file" id="input-bg-upload" accept="image/*" style="display:none;" />
-              </label>
-              <button class="bg-control-btn" id="btn-sample-bg" title="Use default sample background">
-                🎨 Sample BG
-              </button>
-              <button class="bg-control-btn btn-danger-soft" id="btn-clear-bg" title="Remove background">
-                ✕ Remove
-              </button>
-            </div>
-            <div class="bg-status-preview" id="bg-status-preview">
-              <div class="bg-thumb-mini" id="bg-thumb-mini"></div>
-              <span class="bg-status-text" id="bg-status-text">No background set</span>
-            </div>
-          </div>
+          <!-- Two-Column Settings Layout -->
+          <div class="settings-two-cols">
+            <!-- Left Column: Master Background & Tile Opacity -->
+            <div class="settings-col">
+              <div class="setting-section">
+                <label class="setting-label">FULLSCREEN MASTER BACKGROUND</label>
+                <div class="bg-settings-row">
+                  <label class="bg-control-btn bg-upload-label" for="input-bg-upload">
+                    📁 Upload Image
+                    <input type="file" id="input-bg-upload" accept="image/*" style="display:none;" />
+                  </label>
+                  <button class="bg-control-btn" id="btn-sample-bg" title="Use default sample background">
+                    🎨 Sample BG
+                  </button>
+                  <button class="bg-control-btn btn-danger-soft" id="btn-clear-bg" title="Remove background">
+                    ✕ Remove
+                  </button>
+                </div>
+                <div class="bg-status-preview" id="bg-status-preview">
+                  <div class="bg-thumb-mini" id="bg-thumb-mini"></div>
+                  <span class="bg-status-text" id="bg-status-text">No background set</span>
+                </div>
+              </div>
 
-          <!-- Tile Opacity & Merge Section -->
-          <div class="setting-section">
-            <div class="setting-label-row">
-              <label class="setting-label">TILE OPACITY & MERGE</label>
-              <span class="setting-val-badge" id="opacity-val-badge">75%</span>
+              <!-- Tile Opacity & Merge Section -->
+              <div class="setting-section">
+                <div class="setting-label-row">
+                  <label class="setting-label">TILE OPACITY & MERGE</label>
+                  <span class="setting-val-badge" id="opacity-val-badge">75%</span>
+                </div>
+                <div class="slider-control-row">
+                  <span class="slider-min">10%</span>
+                  <input type="range" class="mosaic-slider" id="slider-tile-opacity" min="10" max="100" value="75" step="5" />
+                  <span class="slider-max">100%</span>
+                </div>
+                <div class="blend-mode-pills" id="blend-mode-pills">
+                  <button class="blend-btn" data-blend="normal">Normal</button>
+                  <button class="blend-btn" data-blend="overlay">Overlay</button>
+                  <button class="blend-btn" data-blend="soft-light">Soft Light</button>
+                  <button class="blend-btn" data-blend="multiply">Multiply</button>
+                </div>
+                <span class="setting-hint-text">Adjust opacity to blend guest photos with the fullscreen background.</span>
+              </div>
             </div>
-            <div class="slider-control-row">
-              <span class="slider-min">10%</span>
-              <input type="range" class="mosaic-slider" id="slider-tile-opacity" min="10" max="100" value="75" step="5" />
-              <span class="slider-max">100%</span>
-            </div>
-            <div class="blend-mode-pills" id="blend-mode-pills">
-              <button class="blend-btn" data-blend="normal">Normal</button>
-              <button class="blend-btn" data-blend="overlay">Overlay</button>
-              <button class="blend-btn" data-blend="soft-light">Soft Light</button>
-              <button class="blend-btn" data-blend="multiply">Multiply</button>
-            </div>
-            <span class="setting-hint-text">Adjust opacity to blend guest photos with the fullscreen background.</span>
-          </div>
 
-          <!-- Predefined / Filler Images Section -->
-          <div class="setting-section">
-            <div class="setting-label-row">
-              <label class="setting-label">PREDEFINED / FILLER PHOTOS</label>
-              <span class="setting-val-badge" id="predefined-val-badge">0 Loaded</span>
-            </div>
-            <div class="bg-settings-row">
-              <label class="bg-control-btn bg-upload-label" for="input-folder-upload">
-                📁 Select Folder
-                <input type="file" id="input-folder-upload" webkitdirectory directory multiple accept="image/*" style="display:none;" />
-              </label>
-              <label class="bg-control-btn bg-upload-label" for="input-files-upload">
-                🖼️ Select Files
-                <input type="file" id="input-files-upload" multiple accept="image/*" style="display:none;" />
-              </label>
-              <button class="bg-control-btn btn-danger-soft" id="btn-clear-predefined" title="Clear predefined filler images">
-                ✕ Clear
-              </button>
-            </div>
-            <span class="setting-hint-text">Select laptop folder of images to pre-fill the wall. Live guest smiles flip and replace them!</span>
-          </div>
+            <!-- Right Column: Predefined Filler Photos & Flip Guest Photos -->
+            <div class="settings-col">
+              <!-- Predefined / Filler Images Section -->
+              <div class="setting-section">
+                <div class="setting-label-row">
+                  <label class="setting-label">PREDEFINED / FILLER PHOTOS</label>
+                  <span class="setting-val-badge" id="predefined-val-badge">0 Loaded</span>
+                </div>
+                <div class="bg-settings-row">
+                  <label class="bg-control-btn bg-upload-label" for="input-folder-upload">
+                    📁 Select Folder
+                    <input type="file" id="input-folder-upload" webkitdirectory directory multiple accept="image/*" style="display:none;" />
+                  </label>
+                  <label class="bg-control-btn bg-upload-label" for="input-files-upload">
+                    🖼️ Select Files
+                    <input type="file" id="input-files-upload" multiple accept="image/*" style="display:none;" />
+                  </label>
+                  <button class="bg-control-btn btn-danger-soft" id="btn-clear-predefined" title="Clear predefined filler images">
+                    ✕ Clear
+                  </button>
+                </div>
+                <span class="setting-hint-text">Select laptop folder of images to pre-fill the wall. Live guest smiles flip and replace them!</span>
+              </div>
 
-          <!-- Flip Guest Photos Toggle Section -->
-          <div class="setting-section">
-            <div class="setting-label-row">
-              <label class="setting-label">FLIP GUEST PHOTOS (VERTICAL)</label>
-              <span class="setting-val-badge" id="flip-guest-val-badge">ON</span>
+              <!-- Flip Guest Photos Toggle Section -->
+              <div class="setting-section">
+                <div class="setting-label-row">
+                  <label class="setting-label">FLIP GUEST PHOTOS (VERTICAL)</label>
+                  <span class="setting-val-badge" id="flip-guest-val-badge">ON</span>
+                </div>
+                <div class="toggle-control-row">
+                  <button class="toggle-btn active" id="btn-toggle-flip-user" type="button">
+                    <span class="toggle-indicator"></span>
+                    <span class="toggle-text">Flip Live Guest Smiles in Ambient Wave</span>
+                  </button>
+                </div>
+                <span class="setting-hint-text">When ON, guest smiles from vertical camera flip in 3D with the wave. When OFF, guest smiles remain static.</span>
+              </div>
             </div>
-            <div class="toggle-control-row">
-              <button class="toggle-btn active" id="btn-toggle-flip-user" type="button">
-                <span class="toggle-indicator"></span>
-                <span class="toggle-text">Flip Live Guest Smiles in Ambient Wave</span>
-              </button>
-            </div>
-            <span class="setting-hint-text">When ON, guest smiles from vertical camera flip in 3D with the wave. When OFF, guest smiles remain static.</span>
           </div>
 
           <div class="settings-stats">
