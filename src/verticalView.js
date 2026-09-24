@@ -96,15 +96,6 @@ export function createVerticalView(router) {
               </button>
             </div>
           </div>
-
-          <!-- Bottom bar with subtle simulation buttons & home link -->
-          <div class="bottom-footer-bar">
-            <div class="test-controls-row">
-              <button class="quick-sim-btn" id="btn-sim-smile">😊 Smile (1s)</button>
-              <button class="quick-sim-btn" id="btn-sim-snap">📸 Snap</button>
-              <button class="quick-sim-btn" id="btn-back-start">← Start Screen</button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -116,7 +107,6 @@ export function createVerticalView(router) {
   const dotGreen = container.querySelector('#dot-green');
   const dotYellow = container.querySelector('#dot-yellow');
   const btnHome = container.querySelector('#btn-home');
-  const btnBackStart = container.querySelector('#btn-back-start');
 
   const countdownNum = container.querySelector('#countdown-num');
   const statusPill = container.querySelector('#camera-status');
@@ -125,9 +115,6 @@ export function createVerticalView(router) {
   const capturedPlaceholder = container.querySelector('#captured-placeholder');
   const btnRetake = container.querySelector('#btn-retake');
   const btnOk = container.querySelector('#btn-ok');
-
-  const btnSimSmile = container.querySelector('#btn-sim-smile');
-  const btnSimSnap = container.querySelector('#btn-sim-snap');
 
   let currentCapturedPhoto = null;
 
@@ -163,12 +150,6 @@ export function createVerticalView(router) {
   // Navigation: Back to Start Screen
   if (btnHome) {
     btnHome.addEventListener('click', () => {
-      router.navigate('/start');
-    });
-  }
-
-  if (btnBackStart) {
-    btnBackStart.addEventListener('click', () => {
       router.navigate('/start');
     });
   }
@@ -267,44 +248,6 @@ export function createVerticalView(router) {
       statusPill.textContent = err;
     }
   });
-
-  // Quick simulation triggers for manual testing
-  btnSimSmile.addEventListener('click', () => {
-    setTrafficLights('smile');
-    let timeLeft = 10;
-    const timer = setInterval(() => {
-      timeLeft -= 1;
-      countdownNum.textContent = `${timeLeft}`;
-      if (timeLeft <= 0) {
-        clearInterval(timer);
-        countdownNum.textContent = '10';
-        const frame = detector.captureFrame() || generateSimulatedSelfie();
-        onPhotoCaptured(frame);
-      }
-    }, 100);
-  });
-
-  btnSimSnap.addEventListener('click', () => {
-    const frame = detector.captureFrame() || generateSimulatedSelfie();
-    onPhotoCaptured(frame);
-  });
-
-  function generateSimulatedSelfie() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#161b26';
-    ctx.fillRect(0, 0, 512, 512);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '110px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('😊', 256, 260);
-    ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 28px Outfit, sans-serif';
-    ctx.fillText('SMILE CAPTURED', 256, 360);
-    return canvas.toDataURL('image/jpeg');
-  }
 
   // Component lifecycle
   container.start = async () => {
