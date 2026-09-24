@@ -168,6 +168,21 @@ export function createHorizontalView(router) {
             <span class="setting-hint-text">Select laptop folder of images to pre-fill the wall. Live guest smiles flip and replace them!</span>
           </div>
 
+          <!-- Flip Guest Photos Toggle Section -->
+          <div class="setting-section">
+            <div class="setting-label-row">
+              <label class="setting-label">FLIP GUEST PHOTOS (VERTICAL)</label>
+              <span class="setting-val-badge" id="flip-guest-val-badge">ON</span>
+            </div>
+            <div class="toggle-control-row">
+              <button class="toggle-btn active" id="btn-toggle-flip-user" type="button">
+                <span class="toggle-indicator"></span>
+                <span class="toggle-text">Flip Live Guest Smiles in Ambient Wave</span>
+              </button>
+            </div>
+            <span class="setting-hint-text">When ON, guest smiles from vertical camera flip in 3D with the wave. When OFF, guest smiles remain static.</span>
+          </div>
+
           <div class="settings-stats">
             <span>Filled Slots: <strong id="stat-photos-count">0</strong> / <strong id="stat-total-tiles">98</strong></span>
           </div>
@@ -218,6 +233,31 @@ export function createHorizontalView(router) {
   const inputFilesUpload = container.querySelector('#input-files-upload');
   const btnClearPredefined = container.querySelector('#btn-clear-predefined');
   const predefinedValBadge = container.querySelector('#predefined-val-badge');
+
+  // Flip Guest Photos Settings Toggle
+  const btnToggleFlipUser = container.querySelector('#btn-toggle-flip-user');
+  const flipGuestValBadge = container.querySelector('#flip-guest-val-badge');
+  let flipGuestPhotos = localStorage.getItem('mosaic_flip_guest_photos') !== 'false'; // Default: ON
+
+  function updateFlipGuestUI() {
+    if (btnToggleFlipUser) {
+      btnToggleFlipUser.classList.toggle('active', flipGuestPhotos);
+    }
+    if (flipGuestValBadge) {
+      flipGuestValBadge.textContent = flipGuestPhotos ? 'ON' : 'OFF';
+      flipGuestValBadge.style.color = flipGuestPhotos ? '#38bdf8' : '#94a3b8';
+    }
+  }
+
+  if (btnToggleFlipUser) {
+    btnToggleFlipUser.addEventListener('click', () => {
+      flipGuestPhotos = !flipGuestPhotos;
+      localStorage.setItem('mosaic_flip_guest_photos', flipGuestPhotos ? 'true' : 'false');
+      updateFlipGuestUI();
+      showToast(`Guest Photos Flip: ${flipGuestPhotos ? 'ON' : 'OFF'}`);
+    });
+  }
+  updateFlipGuestUI();
 
   function updatePredefinedBadge() {
     if (predefinedValBadge) {
@@ -885,11 +925,14 @@ export function createHorizontalView(router) {
     if (isAnimatingPhoto) return; // Never interrupt live smile docking
     if (predefinedPhotos.length === 0) return; // Need folder photos to cycle
 
-    // Only pick predefined-photo tiles, NEVER touch live user smiles
-    const candidates = Array.from(gridEl.querySelectorAll('.mosaic-tile.predefined-photo'));
+    // Pick candidates: if flipGuestPhotos is ON, include all photo tiles; else only predefined filler tiles
+    const candidates = flipGuestPhotos
+      ? Array.from(gridEl.querySelectorAll('.mosaic-tile.has-photo'))
+      : Array.from(gridEl.querySelectorAll('.mosaic-tile.predefined-photo'));
+
     if (candidates.length === 0) return;
 
-    // Pick 90% of available predefined tiles across the grid
+    // Pick 90% of available photo tiles across the grid
     const count = Math.max(1, Math.floor(candidates.length * 0.90));
     const shuffled = candidates.slice().sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, count);
@@ -905,25 +948,34 @@ export function createHorizontalView(router) {
       const delay = Math.floor((index / count) * 900);
       setTimeout(() => {
         if (isAnimatingPhoto) return;
-        if (tile.classList.contains('user-photo')) return; // Safety check: never flip user photos
 
-        // Pick a random image from the folder
-        const randomImg = predefinedPhotos[Math.floor(Math.random() * predefinedPhotos.length)];
+        const isUserPhoto = tile.classList.contains('user-photo');
+        if (isUserPhoto && !flipGuestPhotos) return;
+
         card.dataset.isFlipping = 'true';
         card.style.transition = 'transform 1.6s cubic-bezier(0.22, 1, 0.36, 1)';
 
         const isCurrentlyFlipped = card.classList.contains('is-flipped');
 
-        if (isCurrentlyFlipped) {
-          // Currently showing back face. Set new folder image on hidden front face, then flip!
-          front.innerHTML = `<img src="${randomImg}" alt="Folder Photo" />`;
-          void front.offsetWidth;
-          card.classList.remove('is-flipped');
+        if (isUserPhoto) {
+          // Live guest photo: flip card in 3D (both faces hold guest photo, so portrait is preserved)
+          if (isCurrentlyFlipped) {
+            card.classList.remove('is-flipped');
+          } else {
+            card.classList.add('is-flipped');
+          }
         } else {
-          // Currently showing front face. Set new folder image on hidden back face, then flip!
-          back.innerHTML = `<img src="${randomImg}" alt="Folder Photo" />`;
-          void back.offsetWidth;
-          card.classList.add('is-flipped');
+          // Predefined filler photo: pick random image from folder and flip!
+          const randomImg = predefinedPhotos[Math.floor(Math.random() * predefinedPhotos.length)];
+          if (isCurrentlyFlipped) {
+            front.innerHTML = `<img src="${randomImg}" alt="Folder Photo" />`;
+            void front.offsetWidth;
+            card.classList.remove('is-flipped');
+          } else {
+            back.innerHTML = `<img src="${randomImg}" alt="Folder Photo" />`;
+            void back.offsetWidth;
+            card.classList.add('is-flipped');
+          }
         }
 
         setTimeout(() => {
