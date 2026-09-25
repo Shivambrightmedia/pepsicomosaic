@@ -282,8 +282,9 @@ export function createHorizontalView(router) {
       } catch (e) {
         console.warn('Storage quota exceeded, setting background for current session only');
       }
+      container.style.setProperty('--master-bg-url', `url("${bgUrl}")`);
       masterBgEl.style.backgroundImage = `url("${bgUrl}")`;
-      masterBgEl.style.display = 'block';
+      masterBgEl.style.display = 'none';
       container.classList.add('has-master-bg');
       if (bgThumbMini) {
         bgThumbMini.style.backgroundImage = `url("${bgUrl}")`;
@@ -292,6 +293,7 @@ export function createHorizontalView(router) {
       if (bgStatusText) bgStatusText.textContent = 'Active Fullscreen Background';
     } else {
       localStorage.removeItem('mosaic_bg_image');
+      container.style.setProperty('--master-bg-url', 'none');
       masterBgEl.style.backgroundImage = 'none';
       masterBgEl.style.display = 'none';
       container.classList.remove('has-master-bg');
@@ -433,10 +435,13 @@ export function createHorizontalView(router) {
     const halfOffset = numPredefined > 0 ? Math.max(1, Math.floor(numPredefined / 2)) : 0;
 
     gridEl.innerHTML = '';
+    const cols = activePreset.cols;
     for (let i = 0; i < total; i++) {
       const tile = document.createElement('div');
       tile.className = 'mosaic-tile';
       tile.dataset.index = i;
+      tile.style.setProperty('--tile-col', i % cols);
+      tile.style.setProperty('--tile-row', Math.floor(i / cols));
 
       const userPhoto = photos[i];
 
