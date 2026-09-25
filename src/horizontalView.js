@@ -189,6 +189,20 @@ export function createHorizontalView(router) {
                 </div>
                 <span class="setting-hint-text">When ON, guest smiles from vertical camera flip in 3D with the wave. When OFF, guest smiles remain static.</span>
               </div>
+
+              <!-- Grid Wall Padding Section -->
+              <div class="setting-section">
+                <div class="setting-label-row">
+                  <label class="setting-label">WALL PADDING (FRAME SPACE)</label>
+                  <span class="setting-val-badge" id="padding-val-badge">8%</span>
+                </div>
+                <div class="slider-control-row">
+                  <span class="slider-min">0% (Edge)</span>
+                  <input type="range" class="mosaic-slider" id="slider-mosaic-padding" min="0" max="15" value="8" step="1" />
+                  <span class="slider-max">15% (Wide)</span>
+                </div>
+                <span class="setting-hint-text">Gives padding around all sides of the grid so the outer background frames the wall.</span>
+              </div>
             </div>
           </div>
 
@@ -248,6 +262,26 @@ export function createHorizontalView(router) {
   const flipGuestValBadge = container.querySelector('#flip-guest-val-badge');
   let flipGuestPhotos = localStorage.getItem('mosaic_flip_guest_photos') !== 'false'; // Default: ON
 
+  // Mosaic Grid Wall Padding state
+  let currentPadding = parseInt(localStorage.getItem('mosaic_grid_padding') || '8', 10);
+  const sliderMosaicPadding = container.querySelector('#slider-mosaic-padding');
+  const paddingValBadge = container.querySelector('#padding-val-badge');
+
+  function applyPadding(val) {
+    currentPadding = parseInt(val, 10);
+    localStorage.setItem('mosaic_grid_padding', currentPadding);
+    container.style.setProperty('--mosaic-padding-x', `${currentPadding}vw`);
+    container.style.setProperty('--mosaic-padding-y', `${Math.round(currentPadding * 0.75)}vh`);
+    if (paddingValBadge) paddingValBadge.textContent = `${currentPadding}%`;
+    if (sliderMosaicPadding) sliderMosaicPadding.value = currentPadding;
+  }
+
+  if (sliderMosaicPadding) {
+    sliderMosaicPadding.addEventListener('input', (e) => {
+      applyPadding(e.target.value);
+    });
+  }
+
   function updateFlipGuestUI() {
     if (btnToggleFlipUser) {
       btnToggleFlipUser.classList.toggle('active', flipGuestPhotos);
@@ -284,7 +318,7 @@ export function createHorizontalView(router) {
       }
       container.style.setProperty('--master-bg-url', `url("${bgUrl}")`);
       masterBgEl.style.backgroundImage = `url("${bgUrl}")`;
-      masterBgEl.style.display = 'none';
+      masterBgEl.style.display = 'block';
       container.classList.add('has-master-bg');
       if (bgThumbMini) {
         bgThumbMini.style.backgroundImage = `url("${bgUrl}")`;
@@ -409,9 +443,9 @@ export function createHorizontalView(router) {
     gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     gridEl.style.gap = '0px';
     gridEl.style.padding = '0px';
-    gridEl.style.margin = '0px';
-    gridEl.style.width = '100vw';
-    gridEl.style.height = '100vh';
+    gridEl.style.margin = 'auto';
+    gridEl.style.width = 'calc(100vw - 2 * var(--mosaic-padding-x, 8vw))';
+    gridEl.style.height = 'calc(100vh - 2 * var(--mosaic-padding-y, 6vh))';
 
     renderGrid();
     updateStats();
@@ -1088,6 +1122,7 @@ export function createHorizontalView(router) {
   applyBackground(currentBgImage);
   applyTileOpacity(currentTileOpacity);
   applyBlendMode(currentBlendMode);
+  applyPadding(currentPadding);
   startAmbientFlips();
 
   // Load saved predefined images from IndexedDB
