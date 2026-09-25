@@ -30,11 +30,14 @@ export function createHorizontalView(router) {
   // Master background image state
   let currentBgImage = localStorage.getItem('mosaic_bg_image') || null;
 
-  // Tile opacity state (percentage 10-100)
-  let currentTileOpacity = parseInt(localStorage.getItem('mosaic_tile_opacity') || '75', 10);
+  // Master background opacity (percentage 10-100)
+  let currentTileOpacity = parseInt(localStorage.getItem('mosaic_tile_opacity') || '85', 10);
 
-  // Tile blend mode ('normal' | 'overlay' | 'soft-light' | 'multiply')
-  let currentBlendMode = localStorage.getItem('mosaic_tile_blend') || 'normal';
+  // White layer opacity state (percentage 0-100)
+  let currentWhiteOpacity = parseInt(localStorage.getItem('mosaic_white_opacity') || '40', 10);
+
+  // Tile blend mode ('multiply' | 'normal' | 'overlay' | 'soft-light')
+  let currentBlendMode = localStorage.getItem('mosaic_tile_blend') || 'multiply';
 
   // Predefined / filler images state
   let predefinedPhotos = [];
@@ -130,24 +133,38 @@ export function createHorizontalView(router) {
                 </div>
               </div>
 
-              <!-- Tile Opacity & Merge Section -->
+              <!-- White Layer Tint Section (Middle Layer) -->
               <div class="setting-section">
                 <div class="setting-label-row">
-                  <label class="setting-label">TILE OPACITY & MERGE</label>
-                  <span class="setting-val-badge" id="opacity-val-badge">75%</span>
+                  <label class="setting-label">WHITE OVERLAY TINT (MIDDLE LAYER)</label>
+                  <span class="setting-val-badge" id="white-opacity-val-badge">40%</span>
+                </div>
+                <div class="slider-control-row">
+                  <span class="slider-min">0%</span>
+                  <input type="range" class="mosaic-slider" id="slider-white-opacity" min="0" max="100" value="40" step="5" />
+                  <span class="slider-max">100%</span>
+                </div>
+                <span class="setting-hint-text">White wash between bottom photos and top master background.</span>
+              </div>
+
+              <!-- Master Background Blend Section (Top Layer) -->
+              <div class="setting-section">
+                <div class="setting-label-row">
+                  <label class="setting-label">MASTER BACKGROUND OPACITY (TOP LAYER)</label>
+                  <span class="setting-val-badge" id="opacity-val-badge">85%</span>
                 </div>
                 <div class="slider-control-row">
                   <span class="slider-min">10%</span>
-                  <input type="range" class="mosaic-slider" id="slider-tile-opacity" min="10" max="100" value="75" step="5" />
+                  <input type="range" class="mosaic-slider" id="slider-tile-opacity" min="10" max="100" value="85" step="5" />
                   <span class="slider-max">100%</span>
                 </div>
                 <div class="blend-mode-pills" id="blend-mode-pills">
+                  <button class="blend-btn" data-blend="multiply">Multiply</button>
                   <button class="blend-btn" data-blend="normal">Normal</button>
                   <button class="blend-btn" data-blend="overlay">Overlay</button>
                   <button class="blend-btn" data-blend="soft-light">Soft Light</button>
-                  <button class="blend-btn" data-blend="multiply">Multiply</button>
                 </div>
-                <span class="setting-hint-text">Adjust opacity to blend guest photos with the fullscreen background.</span>
+                <span class="setting-hint-text">Blend mode for the top master background. "Multiply" makes white transparent.</span>
               </div>
             </div>
 
@@ -338,9 +355,27 @@ export function createHorizontalView(router) {
   function applyTileOpacity(val) {
     currentTileOpacity = parseInt(val, 10);
     localStorage.setItem('mosaic_tile_opacity', currentTileOpacity);
-    container.style.setProperty('--tile-photo-opacity', (currentTileOpacity / 100).toString());
+    container.style.setProperty('--master-bg-opacity', (currentTileOpacity / 100).toString());
     if (opacityValBadge) opacityValBadge.textContent = `${currentTileOpacity}%`;
     if (sliderTileOpacity) sliderTileOpacity.value = currentTileOpacity;
+  }
+
+  // White layer opacity controls
+  const sliderWhiteOpacity = container.querySelector('#slider-white-opacity');
+  const whiteOpacityValBadge = container.querySelector('#white-opacity-val-badge');
+
+  function applyWhiteOpacity(val) {
+    currentWhiteOpacity = parseInt(val, 10);
+    localStorage.setItem('mosaic_white_opacity', currentWhiteOpacity);
+    container.style.setProperty('--white-layer-opacity', (currentWhiteOpacity / 100).toString());
+    if (whiteOpacityValBadge) whiteOpacityValBadge.textContent = `${currentWhiteOpacity}%`;
+    if (sliderWhiteOpacity) sliderWhiteOpacity.value = currentWhiteOpacity;
+  }
+
+  if (sliderWhiteOpacity) {
+    sliderWhiteOpacity.addEventListener('input', (e) => {
+      applyWhiteOpacity(e.target.value);
+    });
   }
 
   function applyBlendMode(blend) {
@@ -1120,6 +1155,7 @@ export function createHorizontalView(router) {
   setPreset(currentPresetKey);
   applyBackground(currentBgImage);
   applyTileOpacity(currentTileOpacity);
+  applyWhiteOpacity(currentWhiteOpacity);
   applyBlendMode(currentBlendMode);
   applyPadding(currentPadding);
   startAmbientFlips();

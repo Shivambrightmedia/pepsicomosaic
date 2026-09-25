@@ -826,8 +826,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  --tile-photo-opacity: 0.75;
-  --tile-blend-mode: normal;
+  --master-bg-opacity: 0.85;
+  --white-layer-opacity: 0.4;
+  --tile-blend-mode: multiply;
   --mosaic-padding: 50px;
 }
 
@@ -1032,7 +1033,37 @@ body {
   border: none !important;
 }
 
-/* Master background sliced onto each tile face so it flips in 3D with the tile */
+/* Layer 1 (Bottom): Photos at 100% full opacity */
+.tile-front img,
+.tile-back img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Layer 2 (Middle): White Wash Layer */
+.mosaic-tile .tile-front::after,
+.mosaic-tile .tile-back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  opacity: var(--white-layer-opacity, 0.4);
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+/* Layer 3 (Top): Master background sliced onto each tile face */
 .mosaic-fullscreen-container.has-master-bg .tile-front::before,
 .mosaic-fullscreen-container.has-master-bg .tile-back::before {
   content: '';
@@ -1045,23 +1076,11 @@ body {
   background-position: calc(-1 * (var(--mosaic-padding, 50px) + var(--tile-col, 0) * ((100vw - 2 * var(--mosaic-padding, 50px)) / var(--grid-cols, 14))))
                        calc(-1 * (var(--mosaic-padding, 50px) + var(--tile-row, 0) * ((100vh - 2 * var(--mosaic-padding, 50px)) / var(--grid-rows, 7))));
   background-repeat: no-repeat;
-  z-index: 1;
+  z-index: 3;
+  mix-blend-mode: var(--tile-blend-mode, multiply);
+  opacity: var(--master-bg-opacity, 0.85);
   pointer-events: none;
-}
-
-.tile-front img,
-.tile-back img {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  opacity: var(--tile-photo-opacity, 0.75);
-  mix-blend-mode: var(--tile-blend-mode, normal);
-  transition: opacity 0.25s ease, filter 0.25s ease;
-  pointer-events: none;
-  user-select: none;
+  transition: opacity 0.25s ease;
 }
 
 /* ========================================================
