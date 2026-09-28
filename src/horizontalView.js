@@ -220,6 +220,30 @@ export function createHorizontalView(router) {
                 </div>
                 <span class="setting-hint-text">Equal frame padding from all 4 sides (top, bottom, left, right).</span>
               </div>
+
+              <!-- Flip Break Interval Section -->
+              <div class="setting-section">
+                <div class="setting-label-row">
+                  <label class="setting-label">FLIP BREAK INTERVAL (PAUSE)</label>
+                  <span class="setting-val-badge" id="break-val-badge">0.8s</span>
+                </div>
+                <div class="slider-control-row">
+                  <span class="slider-min">0.5s</span>
+                  <input type="range" class="mosaic-slider" id="slider-flip-break" min="0.5" max="300" value="0.8" step="0.5" />
+                  <span class="slider-max">5m</span>
+                </div>
+                <div class="blend-mode-pills break-presets-grid" id="break-preset-pills">
+                  <button class="blend-btn" data-break="0.8">0.8s</button>
+                  <button class="blend-btn" data-break="2">2s</button>
+                  <button class="blend-btn" data-break="5">5s</button>
+                  <button class="blend-btn" data-break="10">10s</button>
+                  <button class="blend-btn" data-break="30">30s</button>
+                  <button class="blend-btn" data-break="60">1m</button>
+                  <button class="blend-btn" data-break="120">2m</button>
+                  <button class="blend-btn" data-break="300">5m</button>
+                </div>
+                <span class="setting-hint-text">Pause duration between random tile flip waves (seconds or minutes).</span>
+              </div>
             </div>
           </div>
 
@@ -297,6 +321,49 @@ export function createHorizontalView(router) {
       applyPadding(e.target.value);
     });
   }
+
+  // Flip Break Interval Settings
+  let currentFlipBreakSec = parseFloat(localStorage.getItem('mosaic_flip_break_sec') || '0.8');
+  const sliderFlipBreak = container.querySelector('#slider-flip-break');
+  const breakValBadge = container.querySelector('#break-val-badge');
+  const breakPresetPills = container.querySelectorAll('#break-preset-pills .blend-btn');
+
+  function formatBreakDuration(sec) {
+    if (sec < 60) {
+      return `${sec}s`;
+    }
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+
+  function applyFlipBreak(val) {
+    currentFlipBreakSec = Math.max(0.5, parseFloat(val) || 0.8);
+    currentFlipBreakSec = Math.round(currentFlipBreakSec * 10) / 10;
+    localStorage.setItem('mosaic_flip_break_sec', currentFlipBreakSec.toString());
+
+    if (breakValBadge) breakValBadge.textContent = formatBreakDuration(currentFlipBreakSec);
+    if (sliderFlipBreak) sliderFlipBreak.value = currentFlipBreakSec;
+
+    breakPresetPills.forEach(btn => {
+      const btnVal = parseFloat(btn.dataset.break);
+      btn.classList.toggle('active', Math.abs(btnVal - currentFlipBreakSec) < 0.1);
+    });
+
+    startAmbientFlips();
+  }
+
+  if (sliderFlipBreak) {
+    sliderFlipBreak.addEventListener('input', (e) => {
+      applyFlipBreak(e.target.value);
+    });
+  }
+
+  breakPresetPills.forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyFlipBreak(btn.dataset.break);
+    });
+  });
 
   function updateFlipGuestUI() {
     if (btnToggleFlipUser) {
@@ -1139,9 +1206,10 @@ export function createHorizontalView(router) {
 
   function startAmbientFlips() {
     stopAmbientFlips();
+    const intervalMs = Math.round((2.5 + currentFlipBreakSec) * 1000);
     ambientFlipInterval = setInterval(() => {
       triggerAmbientFlips();
-    }, 3400); // ~2.5s wave motion + ~0.8s resting break
+    }, intervalMs);
   }
 
   function stopAmbientFlips() {
@@ -1158,7 +1226,7 @@ export function createHorizontalView(router) {
   applyWhiteOpacity(currentWhiteOpacity);
   applyBlendMode(currentBlendMode);
   applyPadding(currentPadding);
-  startAmbientFlips();
+  applyFlipBreak(currentFlipBreakSec);
 
   // Load saved predefined images from IndexedDB
   getPredefinedImages().then((imgs) => {

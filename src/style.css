@@ -1671,6 +1671,12 @@ body {
   gap: 6px;
 }
 
+.break-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
 .blend-btn {
   flex: 1;
   padding: 5px 8px;
